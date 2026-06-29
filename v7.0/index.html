@@ -513,11 +513,28 @@ input[type=time]{position:relative}
   <div class="modal-h">役割分担<button data-close="roleModal">×</button></div>
   <div class="modal-b">
     <div class="grid2">
-      <div><label>リーダー</label><input id="role_leader" placeholder="氏名または役割"></div>
-      <div><label>穿刺担当</label><input id="role_cannulator" placeholder="氏名"></div>
+      <div><label>リーダー</label><input id="role_leader" list="doctor_list" placeholder="選択または入力"></div>
+      <div><label>穿刺担当</label><input id="role_cannulator" list="doctor_list" placeholder="選択または入力"></div>
       <div><label>CE/体外循環</label><input id="role_ce" placeholder="氏名"></div>
       <div><label>記録担当</label><input id="role_recorder" placeholder="氏名"></div>
     </div>
+    <datalist id="doctor_list">
+      <option value="吉原"></option>
+      <option value="高間"></option>
+      <option value="大西"></option>
+      <option value="上村"></option>
+      <option value="伊福"></option>
+      <option value="山尾"></option>
+      <option value="奥田"></option>
+      <option value="嶽崎"></option>
+      <option value="井田"></option>
+      <option value="萬福"></option>
+      <option value="岩崎"></option>
+      <option value="中村"></option>
+      <option value="鈴木"></option>
+      <option value="津代"></option>
+      <option value="有馬"></option>
+    </datalist>
     <button class="btn primary full" id="btnConfirmRole" style="margin-top:10px">役割を記録</button>
   </div>
 </div></div>
