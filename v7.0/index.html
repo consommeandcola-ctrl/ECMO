@@ -175,6 +175,7 @@ textarea{min-height:70px;resize:vertical}
   <div class="top-row">
     <div class="title">ECPR Commander<small>v7.0 CPA/ECPR Record</small></div>
     <span id="confirmedPill" class="status-pill">CPA未確定</span>
+    <button id="updateBtn" class="status-pill" style="background:var(--brand);color:#fff;border:none;margin-left:6px;cursor:pointer;">更新</button>
   </div>
   <div class="timer-grid">
     <div class="timer" id="timerArrestBox"><div class="timer-progress" id="timerArrestProgress"></div><div class="lbl">No flow + Low flow</div><div class="val" id="timerArrest">--:--</div><div class="remain" id="timerArrestRemain"></div></div>
@@ -1327,6 +1328,30 @@ class EcprCommanderV7{
 }
 document.addEventListener("DOMContentLoaded",()=> {
   new EcprCommanderV7();
+  
+  const updateBtn = document.getElementById("updateBtn");
+  if (updateBtn) {
+    updateBtn.addEventListener("click", async () => {
+      if (confirm("キャッシュをクリアして最新版にアップデートしますか？")) {
+        updateBtn.textContent = "更新中...";
+        updateBtn.disabled = true;
+        try {
+          if ('serviceWorker' in navigator) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map(key => caches.delete(key)));
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(registrations.map(reg => reg.unregister()));
+          }
+          window.location.reload(true);
+        } catch (e) {
+          alert("更新に失敗しました: " + e);
+          updateBtn.textContent = "更新";
+          updateBtn.disabled = false;
+        }
+      }
+    });
+  }
+
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('./sw.js')
