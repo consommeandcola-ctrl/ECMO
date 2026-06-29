@@ -168,6 +168,9 @@ textarea{min-height:70px;resize:vertical}
   main{height:calc(100vh - 118px - var(--safe-top))}
   .side-log{top:calc(118px + var(--safe-top))}
 }
+input[type=time]{position:relative}
+.chip.pressed[data-quick]{animation:quick-flash .8s ease}
+@keyframes quick-flash{0%{background:var(--soft-green);border-color:var(--ok);color:var(--ok);transform:scale(.96)}15%{transform:scale(1.02)}100%{background:#fff;border-color:var(--line);color:#374151;transform:scale(1)}}
 </style>
 </head>
 <body>
@@ -230,8 +233,9 @@ textarea{min-height:70px;resize:vertical}
           <div><label>除細動回数</label><div class="stepper"><button type="button" data-step-count="shock" data-delta="-1">−</button><div class="num" id="cpa_shock_count">0</div><button type="button" data-step-count="shock" data-delta="1">＋</button></div></div>
         </div>
         <label>搬入前メモ</label><textarea id="cpa_memo" placeholder="救急隊情報、DNAR確認、家族情報、推定原因など"></textarea>
-        <div class="action-grid single" style="margin-top:10px">
+        <div class="action-grid" style="margin-top:10px">
           <button class="btn primary big" id="btnConfirmCpa">CPA情報を確定<small>確定サマリーを作成してライブ操作へ</small></button>
+          <button class="btn ghost big" id="btnFormReset">入力をリセット<small>初期値に戻す</small></button>
         </div>
       </div>
     </div>
@@ -274,7 +278,7 @@ textarea{min-height:70px;resize:vertical}
         <div class="card-b">
           <label>気道</label>
           <div class="chips">
-            <button class="chip" data-quick="BVM換気">BVM</button><button class="chip" data-quick="吸引">吸引</button><button class="chip" data-quick="気管支鏡">気管支鏡</button><button class="chip" data-quick="輪状甲状間膜穿刺">輪状甲状間膜穿刺</button><button class="chip" data-quick="輪状甲状間膜切開">輪状甲状間膜切開</button><button class="chip" data-open="airway">気管挿管</button>
+            <button class="chip" data-quick="BVM換気">BVM</button><button class="chip" data-quick="吸引">吸引</button><button class="chip" data-quick="気管支鏡">気管支鏡</button><button class="chip" data-quick="輪状甲状間膜穿刺">輪状甲状間膜穿刺</button><button class="chip" data-quick="輪状甲状間膜切開">輪状甲状間膜切開</button><button class="chip" data-open="airway">気管挿管</button><button class="chip" data-quick="人工呼吸器装着">人工呼吸器装着</button>
           </div>
           <label>薬剤・処置</label>
           <div class="chips">
@@ -618,6 +622,7 @@ class EcprCommanderV7{
       this.$(id).addEventListener("change",()=>this.updateCpaFromForm());
     });
     this.$("btnConfirmCpa").addEventListener("click",()=>this.confirmCpa());
+    this.$("btnFormReset").addEventListener("click",()=>this.resetCpaForm());
     this.$("btnCpr").addEventListener("click",()=>this.startCpr());
     this.$("btnRhythm").addEventListener("click",()=>this.open("rhythmModal"));
     this.$("btnShock").addEventListener("click",()=>this.recordShock());
@@ -738,10 +743,23 @@ class EcprCommanderV7{
   }
   updateCpaFromForm(){
     const c=this.state.cpa;
+    const oldArrest=c.arrestTime;
+    const oldArrival=c.arrivalTime;
     c.age=this.$("cpa_age").value;c.sex=this.$("cpa_sex").value;c.arrestPlace=this.$("cpa_arrest_place").value;c.cause=this.$("cpa_cause").value;
-    c.startType=this.$("cpa_start_type").value;c.rhythm=this.$("cpa_rhythm").value;c.arrestTime=this.$("cpa_arrest_time").value;c.cprTime=this.$("cpa_cpr_time").value;c.arrivalTime=this.$("cpa_arrival_time").value;c.lastEpiTime=this.$("cpa_last_epi_time").value;
+    c.startType=this.$("cpa_start_type").value;c.rhythm=this.$("cpa_rhythm").value;
+    c.arrestTime=this.$("cpa_arrest_time").value;
+    c.cprTime=this.$("cpa_cpr_time").value;
+    c.arrivalTime=this.$("cpa_arrival_time").value;
+    c.lastEpiTime=this.$("cpa_last_epi_time").value;
     c.memo=this.$("cpa_memo").value;
     this.state.outcome=this.$("case_outcome").value;
+    if(c.arrestTime&&c.arrestTime!==oldArrest){
+      if(!c.cprTime){c.cprTime=c.arrestTime;this.$("cpa_cpr_time").value=c.arrestTime;}
+      if(!c.arrivalTime){c.arrivalTime=c.arrestTime;this.$("cpa_arrival_time").value=c.arrestTime;}
+    }
+    if(c.arrivalTime&&c.arrivalTime!==oldArrival){
+      if(!c.lastEpiTime){c.lastEpiTime=c.arrivalTime;this.$("cpa_last_epi_time").value=c.arrivalTime;}
+    }
     this.renderCpaSummary();
   }
   stepPrehospitalCount(type,delta,btn){
@@ -784,6 +802,13 @@ class EcprCommanderV7{
     l.currentRhythm=c.rhythm;l.epiCount=c.epiCount;l.shockCount=c.shockCount;l.episode=1;
     this.log("CPA",this.cpaConfirmLogText());
     this.switchView("live");this.save();this.render();
+  }
+  resetCpaForm(){
+    if(!confirm("CPA情報の入力内容をリセットしますか？"))return;
+    this.state.cpa=this.defaultState().cpa;
+    this.save();
+    this.restoreForm();
+    this.render();
   }
   clickFx(el){if(!el)return;el.classList.remove("pressed");void el.offsetWidth;el.classList.add("pressed");}
   currentFlowSec(){
@@ -866,7 +891,7 @@ class EcprCommanderV7{
     this.close("roscModal");
     this.save();this.render();
   }
-  prepareTubeModal(){const c=this.state.cpa;this.$("tube_time").value=c.tubeTime||this.nowTime();this.$("tube_size").value=c.tubeSize||"7.5";this.$("tube_depth").value=c.tubeDepth||"22";}
+  prepareTubeModal(){const c=this.state.cpa;this.$("tube_time").value=c.tubeTime||c.arrestTime||this.nowTime();this.$("tube_size").value=c.tubeSize||"7.5";this.$("tube_depth").value=c.tubeDepth||"22";}
   confirmTube(){const c=this.state.cpa;c.tubeTime=this.$("tube_time").value||this.nowTime();c.tubeSize=this.$("tube_size").value;c.tubeDepth=this.$("tube_depth").value;c.tube=c.tubeTime+" ID"+c.tubeSize+"mm "+c.tubeDepth+"cm";if(!c.prehospital.includes("気管挿管"))c.prehospital.push("気管挿管");this.log("気道","気管挿管 "+c.tube);this.close("airwayModal");this.save();this.render();}
   openCannulaModal(focus){this._cannulaFocus=focus;this.open("cannulaModal");}
   fillCannulaSelect(id,kind,val){

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ecmo-cpa-v7-v2';
+const CACHE_NAME = 'ecmo-cpa-v7-v3';
 const urlsToCache = [
   './',
   './index.html',
