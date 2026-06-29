@@ -178,6 +178,7 @@ input[type=time]{position:relative}
   <div class="top-row">
     <div class="title">ECPR Commander<small>v7.0 CPA/ECPR Record</small></div>
     <span id="confirmedPill" class="status-pill">CPA未確定</span>
+    <button id="btnFormReset" class="status-pill" style="background:var(--muted);color:#fff;border:none;margin-left:6px;cursor:pointer;">リセット</button>
     <button id="updateBtn" class="status-pill" style="background:var(--brand);color:#fff;border:none;margin-left:6px;cursor:pointer;">更新</button>
   </div>
   <div class="timer-grid">
@@ -233,9 +234,8 @@ input[type=time]{position:relative}
           <div><label>除細動回数</label><div class="stepper"><button type="button" data-step-count="shock" data-delta="-1">−</button><div class="num" id="cpa_shock_count">0</div><button type="button" data-step-count="shock" data-delta="1">＋</button></div></div>
         </div>
         <label>搬入前メモ</label><textarea id="cpa_memo" placeholder="救急隊情報、DNAR確認、家族情報、推定原因など"></textarea>
-        <div class="action-grid" style="margin-top:10px">
+        <div class="action-grid single" style="margin-top:10px">
           <button class="btn primary big" id="btnConfirmCpa">CPA情報を確定<small>確定サマリーを作成してライブ操作へ</small></button>
-          <button class="btn ghost big" id="btnFormReset">入力をリセット<small>初期値に戻す</small></button>
         </div>
       </div>
     </div>
