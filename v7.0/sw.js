@@ -3,7 +3,8 @@ const urlsToCache = [
   './',
   './index.html',
   './manifest.json',
-  './icon.png'
+  './icon.png',
+  './qrcode.png'
 ];
 
 self.addEventListener('install', (event) => {
