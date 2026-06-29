@@ -1,0 +1,881 @@
+<!doctype html>
+<!-- 2026-06-19 | v5.1.3 | ROSC時刻入力モーダル追加、ECPR報告の工程記録を処置記録に変更 -->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#f2f2f7">
+<title>ECPR Commander v5.1 Legacy</title>
+<style>
+:root{
+  --ink:#111827;--muted:#6b7280;--bg:#f2f2f7;--card:#fff;--line:#d1d5db;
+  --brand:#2563eb;--danger:#dc2626;--warn:#d97706;--ok:#16a34a;--purple:#7c3aed;
+  --chip:#eef2ff;--soft-red:#fef2f2;--soft-green:#ecfdf5;--soft-yellow:#fffbeb;
+  --safe-top:0px;--safe-bottom:0px;
+  --radius:14px;--shadow:0 2px 10px rgba(17,24,39,.08);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;height:100%;overflow:hidden;overscroll-behavior:none}
+body{font-family:Meiryo,"Yu Gothic",sans-serif;background:var(--bg);color:var(--ink)}
+button,input,select,textarea{font:inherit}
+button{border:none;cursor:pointer}
+header{position:sticky;top:0;z-index:20;background:rgba(242,242,247,.96);border-bottom:1px solid var(--line);padding:calc(8px + var(--safe-top)) 12px 8px}
+.top-row{display:flex;align-items:center;gap:8px}
+.title{font-weight:800;font-size:17px;line-height:1}.title small{display:block;font-size:10px;color:var(--muted);font-weight:700;margin-top:2px}
+.status-pill{margin-left:auto;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:800;background:#e5e7eb;color:#374151}
+.status-pill.on{background:var(--soft-green);color:var(--ok)}
+.timer-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:9px}
+.timer{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:7px 6px;text-align:center;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.timer-progress{position:absolute;inset:0 auto 0 0;width:0%;background:rgba(22,163,74,.16);transition:width .25s ease,background .25s ease;z-index:0}
+.timer-progress.warn{background:rgba(245,158,11,.22)}
+.timer-progress.alert{background:rgba(220,38,38,.22)}
+.timer .lbl,.timer .val,.timer .remain{position:relative;z-index:1}
+.timer .lbl{font-size:10px;color:var(--muted);font-weight:700}.timer .val{font-variant-numeric:tabular-nums;font-size:20px;font-weight:900;line-height:1.1}
+.timer .remain{font-size:9px;color:var(--muted);font-weight:800;margin-top:1px;min-height:10px}
+.timer .remain:empty{display:none}
+.timer.warn .val{color:var(--warn)}.timer.alert .val{color:var(--danger)}
+.header-summary{margin-top:6px;background:#fff;border:1px solid var(--line);border-left:4px solid var(--brand);border-radius:9px;padding:5px 8px;font-size:10.5px;line-height:1.35;color:#374151;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+main{height:calc(100vh - 142px - var(--safe-top));overflow-y:auto;padding:10px 10px calc(74px + var(--safe-bottom));-webkit-overflow-scrolling:touch}
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:25;display:flex;background:rgba(255,255,255,.96);border-top:1px solid var(--line);padding-bottom:var(--safe-bottom)}
+.tab{flex:1;padding:9px 4px;font-size:11px;font-weight:800;color:var(--muted);background:transparent}.tab.active{color:var(--brand)}
+.view{display:none}.view.active{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:10px;overflow:hidden}
+.card-h{padding:12px 14px;border-bottom:1px solid var(--line);font-size:14px;font-weight:900;display:flex;align-items:center;gap:8px}
+.card-b{padding:12px 14px}
+.hint{font-size:12px;color:var(--muted);line-height:1.6;background:#f9fafb;border:1px solid var(--line);border-radius:10px;padding:9px;margin-bottom:10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+label{display:block;font-size:11px;font-weight:800;color:var(--muted);margin:8px 0 4px}
+input,select,textarea{width:100%;border:1px solid var(--line);border-radius:10px;background:#f9fafb;padding:10px 11px;font-size:15px;color:var(--ink)}
+textarea{min-height:70px;resize:vertical}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{border:1px solid var(--line);border-radius:999px;background:#fff;padding:8px 11px;font-size:13px;font-weight:800;color:#374151}
+.chip.on{background:var(--chip);border-color:var(--brand);color:var(--brand)}
+.chip.ok.on{background:var(--soft-green);border-color:var(--ok);color:var(--ok)}
+.chip.bad.on{background:var(--soft-red);border-color:var(--danger);color:var(--danger)}
+.btn{border-radius:12px;padding:12px 13px;font-weight:900;background:#e5e7eb;color:var(--ink);min-height:46px;position:relative;transition:transform .08s ease,filter .12s ease,box-shadow .12s ease}
+.btn:active{transform:scale(.97);filter:brightness(.96)}
+.btn.pressed,.chip.pressed{animation:press-pop .28s ease}
+@keyframes press-pop{0%{transform:scale(.96);box-shadow:0 0 0 0 rgba(37,99,235,.25)}60%{transform:scale(1.02);box-shadow:0 0 0 7px rgba(37,99,235,.10)}100%{transform:scale(1);box-shadow:0 0 0 0 rgba(37,99,235,0)}}
+.count-badge{position:absolute;top:5px;right:7px;background:#111827;color:#fff;border-radius:999px;min-width:22px;height:22px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;border:2px solid rgba(255,255,255,.85)}
+.stepper{display:grid;grid-template-columns:42px 1fr 42px;gap:6px;align-items:center}
+.stepper button{min-height:42px;border-radius:10px;background:#e5e7eb;font-weight:900;color:var(--ink)}
+.stepper .num{height:42px;border:1px solid var(--line);border-radius:10px;background:#f9fafb;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;font-variant-numeric:tabular-nums}
+.stepper .num.on{background:#eff6ff;border-color:var(--brand);color:var(--brand)}
+.btn.primary{background:var(--brand);color:#fff}.btn.danger{background:var(--danger);color:#fff}.btn.ok{background:var(--ok);color:#fff}.btn.warn{background:#f59e0b;color:#111827}.btn.purple{background:var(--purple);color:#fff}.btn.ghost{background:#fff;border:1px solid var(--line)}
+.btn.done{background:var(--soft-green)!important;border:1px solid var(--ok)!important;color:var(--ok)!important}
+.btn.full{width:100%}.btn.big{min-height:76px;font-size:18px}.btn small{display:block;font-size:11px;font-weight:700;opacity:.85;margin-top:3px}
+.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.action-grid.single{grid-template-columns:1fr}
+.action-grid.three{grid-template-columns:repeat(3,1fr)}
+.lane-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:10px}
+.lane{border:1px solid var(--line);border-radius:10px;background:#fff;padding:8px 6px;text-align:center;min-height:62px}
+.lane .n{font-size:11px;font-weight:900;line-height:1.25}.lane .s{font-size:10px;color:var(--muted);margin-top:4px}
+.lane.on{border-color:var(--brand);background:#eff6ff}.lane.done{border-color:var(--ok);background:var(--soft-green)}.lane.warn{border-color:var(--warn);background:var(--soft-yellow)}
+.board-section{border:1px solid var(--line);border-radius:12px;background:#fff;margin-bottom:10px;overflow:hidden}
+.board-h{padding:9px 11px;background:#f9fafb;border-bottom:1px solid var(--line);font-size:12px;font-weight:900;color:#374151;display:flex;justify-content:space-between;gap:8px}
+.board-b{padding:10px}
+.ecpr-btn-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.btn-mini{min-height:54px;font-size:13px;text-align:left;display:flex;flex-direction:column;align-items:flex-start;justify-content:center}
+.btn-mini small{font-size:10px;font-weight:700;color:inherit;opacity:.75}
+#view-ecpr .card{margin-bottom:6px;border-radius:10px;box-shadow:none}
+#view-ecpr .card-h{padding:7px 10px;font-size:12px}
+#view-ecpr .card-b{padding:7px 9px}
+#view-ecpr .hint{font-size:10px;line-height:1.35;padding:5px 7px;margin-bottom:5px;border-radius:7px}
+#view-ecpr label{font-size:9.5px;margin:4px 0 3px}
+#view-ecpr .chips{gap:4px}
+#view-ecpr .chip{font-size:11px;padding:4px 8px;border-radius:12px}
+#view-ecpr .lane-grid{gap:3px;margin-bottom:5px}
+#view-ecpr .lane{border-radius:7px;padding:4px 3px;min-height:38px}
+#view-ecpr .lane .n{font-size:10px;line-height:1.1}
+#view-ecpr .lane .s{font-size:8.5px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#view-ecpr .board-section{border-radius:8px;margin-bottom:4px}
+#view-ecpr .board-h{padding:4px 7px;font-size:10px}
+#view-ecpr .board-b{padding:5px}
+#view-ecpr .ecpr-btn-grid{grid-template-columns:repeat(4,1fr);gap:4px}
+#view-ecpr .btn-mini{min-height:38px;font-size:11px;border-radius:7px;padding:5px 6px;line-height:1.12}
+#view-ecpr .btn-mini small{font-size:8.5px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+#view-ecpr .btn-mini:not(.done){background:#fff!important;border:1px solid var(--line)!important;color:var(--ink)!important}
+.kit-accordion{display:grid;gap:4px}
+.kit-cat{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+.kit-head{width:100%;display:flex;align-items:center;gap:6px;padding:6px 8px;background:#f9fafb;color:var(--ink);font-size:11px;font-weight:900;text-align:left}
+.kit-head .kit-count{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums}
+.kit-cat.done .kit-head{background:var(--soft-green);color:var(--ok)}
+.kit-body{display:none;padding:5px 8px;border-top:1px solid var(--line);grid-template-columns:repeat(2,1fr);gap:4px}
+.kit-cat.open .kit-body{display:grid}
+.kit-item{display:flex;align-items:center;gap:5px;font-size:10.5px;line-height:1.25;padding:3px 2px;cursor:pointer}
+.kit-item input{width:auto;margin:0;accent-color:var(--ok)}
+.summary-box{background:#111827;color:#fff;border-radius:12px;padding:12px;font-size:12px;line-height:1.7;white-space:pre-wrap}
+.fixed-summary{border-left:5px solid var(--brand);background:#eff6ff;padding:10px 11px;border-radius:10px;font-size:12px;line-height:1.65;margin-bottom:10px}
+.log{font-family:Meiryo,Consolas,monospace;font-size:12px;line-height:1.45}.log-row{display:flex;gap:8px;border-bottom:1px dashed var(--line);padding:6px 0}.log-time{color:var(--brand);font-weight:900;min-width:42px}.log-cat{display:none}.log-text{flex:1}
+.side-log{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:8px;display:flex;flex-direction:column;gap:7px}
+.side-log .side-h{font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:space-between}
+.side-log .log{flex:1;overflow:auto;border-top:1px solid var(--line);padding-top:4px}
+.side-log .summary-box{font-size:10.5px;max-height:120px;overflow:auto}
+.modal{position:fixed;inset:0;background:rgba(17,24,39,.55);z-index:50;display:none;align-items:flex-end}.modal.show{display:flex}.modal-box{background:#fff;border-radius:18px 18px 0 0;width:100%;max-height:82vh;overflow:auto}.modal-h{padding:14px 16px;border-bottom:1px solid var(--line);font-weight:900;display:flex}.modal-h button{margin-left:auto;background:transparent;font-size:20px}.modal-b{padding:14px 16px}
+@media(min-width:960px){main{max-width:none;margin:0 286px 0 0}.side-log{position:fixed;right:10px;top:calc(143px + var(--safe-top));bottom:calc(46px + var(--safe-bottom));width:266px;z-index:12}.desktop-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.modal{align-items:center;justify-content:center}.modal-box{max-width:520px;border-radius:18px}}
+@media(max-width:959px){.side-log{margin:10px}.side-log .log{max-height:180px}}
+@media(max-width:900px){.lane-grid{grid-template-columns:repeat(3,1fr)}.action-grid.three{grid-template-columns:1fr 1fr}#view-ecpr .ecpr-btn-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:640px){.grid2,.grid3{grid-template-columns:1fr}.action-grid{grid-template-columns:1fr 1fr}.lane-grid{grid-template-columns:repeat(2,1fr)}.ecpr-btn-grid{grid-template-columns:1fr 1fr}.btn.big{min-height:68px}#view-ecpr .ecpr-btn-grid{grid-template-columns:repeat(2,1fr)}#view-ecpr .btn-mini{min-height:36px;font-size:10.5px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="top-row">
+    <div class="title">ECPR Commander<small>v5.1 Legacy CPA/ECPR Record</small></div>
+    <span id="confirmedPill" class="status-pill">CPA未確定</span>
+  </div>
+  <div class="timer-grid">
+    <div class="timer" id="timerArrestBox"><div class="timer-progress" id="timerArrestProgress"></div><div class="lbl">No flow + Low flow</div><div class="val" id="timerArrest">--:--</div><div class="remain" id="timerArrestRemain"></div></div>
+    <div class="timer" id="timerCycleBox"><div class="timer-progress" id="timerCycleProgress"></div><div class="lbl">CPRサイクル</div><div class="val" id="timerCycle">--:--</div><div class="remain" id="timerCycleRemain">次チェック --:--</div></div>
+    <div class="timer" id="timerEpiBox"><div class="timer-progress" id="timerEpiProgress"></div><div class="lbl">Adrenaline</div><div class="val" id="timerEpi">--:--</div><div class="remain" id="timerEpiRemain">次投与 --:--</div></div>
+  </div>
+  <div class="header-summary" id="headerSummary">CPA情報未確定</div>
+</header>
+
+<main>
+  <section id="view-cpa" class="view active">
+    <div class="card">
+      <div class="card-h">CPA状況を確定</div>
+      <div class="card-b">
+        <div class="hint">プレホスで挿管・アドレナリン・除細動が済んでいる場合も、ここで情報を入れて「確定」。蘇生タイマーは心停止時刻/CPR開始時刻/最終アドレナリンから途中状態として開始できます。</div>
+        <div class="grid2">
+          <div><label>開始状況</label><select id="cpa_start_type"><option>プレホスCPA継続</option><option>病着前ROSC後</option><option>院内CPA</option><option>再心停止</option><option>心原性ショックからECPR検討</option></select></div>
+          <div><label>初期波形</label><select id="cpa_rhythm"><option value="">未選択</option><option>VF</option><option>無脈性VT</option><option>PEA</option><option>Asystole</option><option>ROSC後</option><option>不明</option></select></div>
+        </div>
+        <div class="grid2">
+          <div><label>心停止時刻</label><input type="time" id="cpa_arrest_time"></div>
+          <div><label>CPR開始時刻</label><input type="time" id="cpa_cpr_time"></div>
+          <div><label>病院到着/接触時刻</label><input type="time" id="cpa_arrival_time"></div>
+          <div><label>最終アドレナリン時刻</label><input type="time" id="cpa_last_epi_time"></div>
+        </div>
+        <label>目撃・Bystander</label>
+        <div class="chips" data-group="witness">
+          <button class="chip ok" data-value="目撃あり">目撃あり</button>
+          <button class="chip bad" data-value="目撃なし">目撃なし</button>
+          <button class="chip ok" data-value="Bystander CPRあり">Bystander CPRあり</button>
+          <button class="chip bad" data-value="Bystander CPRなし">Bystander CPRなし</button>
+        </div>
+        <label>プレホス処置済み</label>
+        <div class="chips" data-group="prehospital">
+          <button class="chip" data-value="BVM">BVM</button>
+          <button class="chip" data-value="LT/i-gel">LT/i-gel</button>
+          <button class="chip" data-value="気管挿管">気管挿管</button>
+          <button class="chip" data-value="末梢静脈路確保">末梢静脈路</button>
+          <button class="chip" data-value="骨髄針留置">骨髄針</button>
+          <button class="chip" data-value="LUCAS">LUCAS</button>
+          <button class="chip" data-value="除細動済み">除細動済み</button>
+        </div>
+        <div class="grid2">
+          <div><label>Adrenaline回数</label><div class="stepper"><button type="button" data-step-count="epi" data-delta="-1">-</button><div class="num" id="cpa_epi_count">0</div><button type="button" data-step-count="epi" data-delta="1">+</button></div></div>
+          <div><label>除細動回数</label><div class="stepper"><button type="button" data-step-count="shock" data-delta="-1">-</button><div class="num" id="cpa_shock_count">0</div><button type="button" data-step-count="shock" data-delta="1">+</button></div></div>
+        </div>
+        <label>搬入前メモ</label><textarea id="cpa_memo" placeholder="救急隊情報、DNAR確認、家族情報、推定原因など"></textarea>
+        <div class="action-grid single" style="margin-top:10px">
+          <button class="btn primary big" id="btnConfirmCpa">CPA情報を確定<small>確定サマリーを作成してライブ操作へ</small></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h">物品チェック</div>
+      <div class="card-b">
+        <div class="kit-accordion" id="kitChecklist"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-live" class="view">
+    <div class="desktop-grid">
+      <div class="card">
+        <div class="card-h">蘇生ライブ操作</div>
+        <div class="card-b">
+          <div id="nextHint" class="hint">CPA情報を確定、または「CPR開始/継続」から開始できます。</div>
+          <div class="action-grid">
+            <button class="btn primary big" id="btnCpr">CPR開始/継続<small>途中開始可</small></button>
+            <button class="btn purple big" id="btnRhythm">リズム確認<small>2分評価</small></button>
+            <button class="btn danger big" id="btnShock">除細動<span class="count-badge" id="shockBadge">0</span><small>VF/pVT</small></button>
+            <button class="btn warn big" id="btnEpi">Adrenaline<span class="count-badge" id="epiBadge">0</span><small>1mg</small></button>
+            <button class="btn purple big" id="btnAmio">Amiodarone<span class="count-badge" id="amioBadge">0</span><small id="amioDoseHint">次 300mg</small></button>
+            <button class="btn ok big" id="btnRosc">ROSC<small>心拍再開</small></button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h">系統別クイック記録</div>
+        <div class="card-b">
+          <label>気道</label>
+          <div class="chips">
+            <button class="chip" data-quick="BVM換気">BVM</button><button class="chip" data-quick="吸引">吸引</button><button class="chip" data-quick="気管支鏡">気管支鏡</button><button class="chip" data-quick="輪状甲状間膜穿刺">輪状甲状間膜穿刺</button><button class="chip" data-quick="輪状甲状間膜切開">輪状甲状間膜切開</button><button class="chip" data-open="airway">気管挿管</button>
+          </div>
+          <label>薬剤・処置</label>
+          <div class="chips">
+            <button class="chip" data-quick="末梢静脈路確保">末梢静脈路</button><button class="chip" data-quick="CV挿入開始">CV開始</button><button class="chip" data-quick="Aライン挿入">Aライン</button><button class="chip" data-quick="胃管挿入">胃管</button><button class="chip" data-quick="心膜穿刺">心膜穿刺</button><button class="chip" data-quick="心膜開窓">心膜開窓</button><button class="chip" data-quick="開胸">開胸</button><button class="chip" data-quick="メイロン投与">メイロン</button><button class="chip" data-quick="Ca投与">Ca</button><button class="chip" data-quick="Noradrenaline開始">NAd開始</button>
+          </div>
+          <label>検査・原因</label>
+          <div class="chips">
+            <button class="chip" data-quick="12誘導心電図">12誘導</button><button class="chip" data-quick="心エコー">心エコー</button><button class="chip" data-quick="腹部エコー">腹部エコー</button><button class="chip" data-quick="下肢エコー">下肢エコー</button><button class="chip" data-quick="ABG採取">ABG</button><button class="chip" data-quick="CT準備">CT</button><button class="chip" data-quick="CAG準備">CAG</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-ecpr" class="view">
+    <div class="card">
+      <div class="card-h">ECPR工程フロー</div>
+      <div class="card-b">
+        <div class="hint">蘇生継続とECMO準備を並走。緑が完了工程。</div>
+        <div class="lane-grid" id="ecprFlow">
+          <div class="lane" data-flow="call"><div class="n">召集</div><div class="s">ECMOコール</div></div>
+          <div class="lane" data-flow="decision"><div class="n">GO判断</div><div class="s">PCPS宣言</div></div>
+          <div class="lane" data-flow="access"><div class="n">アクセス</div><div class="s">末梢/骨髄/A-line</div></div>
+          <div class="lane" data-flow="prepare"><div class="n">準備</div><div class="s">エコー/ACT/Prime</div></div>
+          <div class="lane" data-flow="cann"><div class="n">穿刺</div><div class="s">送血/脱血/DPC</div></div>
+          <div class="lane" data-flow="support"><div class="n">循環確立</div><div class="s">ポンプ/原因治療</div></div>
+        </div>
+        <label>適応根拠</label>
+        <div class="chips" data-group="ecprCriteria">
+          <button class="chip ok" data-value="Witnessあり">Witnessあり</button>
+          <button class="chip ok" data-value="Bystander CPRあり">Bystander CPRあり</button>
+          <button class="chip ok" data-value="VF/pVT">VF/pVT</button>
+          <button class="chip ok" data-value="可逆性疾患疑い">可逆性疾患疑い</button>
+          <button class="chip ok" data-value="ADL良好">ADL良好</button>
+          <button class="chip bad" data-value="DNAR/終末期疑い">DNAR/終末期疑い</button>
+          <button class="chip bad" data-value="大動脈解離/出血疑い">解離/出血疑い</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h">ECPR操作盤</div>
+      <div class="card-b">
+        <div class="board-section">
+          <div class="board-h"><span>1 判断・召集</span><span>Commander</span></div>
+          <div class="board-b ecpr-btn-grid">
+            <button class="btn purple btn-mini" id="btnEcmoCall">ECMOコール<small>チーム召集</small></button>
+            <button class="btn danger btn-mini" id="btnPcps">PCPS宣言<small>ECPR GO判断</small></button>
+            <button class="btn ghost btn-mini" data-ecpr="family">家族/方針確認<small>DNAR・終末期確認</small></button>
+            <button class="btn ghost btn-mini" data-ecpr="role">役割確認<small>術者/CE/記録/搬送</small></button>
+          </div>
+        </div>
+        <div class="board-section">
+          <div class="board-h"><span>2 CPR・アクセス</span><span>ACLS</span></div>
+          <div class="board-b ecpr-btn-grid">
+            <button class="btn primary btn-mini" data-ecpr="piv">末梢静脈路確保<small>IV line</small></button>
+            <button class="btn primary btn-mini" data-ecpr="io">骨髄針留置<small>IO line</small></button>
+            <button class="btn ghost btn-mini" data-ecpr="aline">右橈骨A-line<small>右手評価</small></button>
+            <button class="btn ghost btn-mini" data-ecpr="cpr_quality">CPR質確認<small>EtCO2/交代/深さ</small></button>
+          </div>
+        </div>
+        <div class="board-section">
+          <div class="board-h"><span>3 ECMO準備</span><span>CE / Nurse</span></div>
+          <div class="board-b ecpr-btn-grid">
+            <button class="btn ghost btn-mini" data-ecpr="echo">エコー準備<small>穿刺/原因検索</small></button>
+            <button class="btn ghost btn-mini" data-ecpr="prime">回路プライミング<small>JMS ECmoVA</small></button>
+            <button class="btn ghost btn-mini" data-ecpr="act">ACT測定<small>抗凝固前確認</small></button>
+            <button class="btn warn btn-mini" data-ecpr="heparin">ヘパリン投与<small>宣言後</small></button>
+          </div>
+        </div>
+        <div class="board-section">
+          <div class="board-h"><span>4 カニュレーション</span><span>Physician / CE</span></div>
+          <div class="board-b ecpr-btn-grid">
+            <button class="btn ghost btn-mini" id="btnCann">穿刺開始<small>穿刺時刻</small></button>
+            <button class="btn ghost btn-mini" id="btnArtCann">送血カニューレ<small>FA</small></button>
+            <button class="btn ghost btn-mini" id="btnVenCann">脱血カニューレ<small>FV</small></button>
+            <button class="btn ghost btn-mini" data-ecpr="wire_xp">ワイヤーX線確認<small>血管内留置</small></button>
+            <button class="btn ghost btn-mini" data-ecpr="connect">送脱血接続確認<small>エア抜き含む</small></button>
+            <button class="btn ok btn-mini" id="btnPump">ポンプオン<small>Flow/RPM記録</small></button>
+          </div>
+        </div>
+        <div class="board-section">
+          <div class="board-h"><span>5 確立後・原因治療</span><span>Post ECPR</span></div>
+          <div class="board-b ecpr-btn-grid">
+            <button class="btn ghost btn-mini" id="btnDpcCann">DPC留置/確認<small>下肢虚血予防</small></button>
+            <button class="btn ghost btn-mini" data-ecpr="right_spo2">右手SpO2/ABG<small>Differential hypoxia</small></button>
+            <button class="btn ghost btn-mini" data-ecpr="ct_route">CT導線<small>PE/解離/出血</small></button>
+            <button class="btn ghost btn-mini" data-ecpr="cag_route">CAG/PCI導線<small>AMI/VF</small></button>
+            <button class="btn ghost btn-mini" data-ecpr="flow_trouble">脱血不良確認<small>キンク/容量/位置</small></button>
+            <button class="btn ghost btn-mini" data-ecpr="bubble">気泡/結露対応<small>JMSトラブル</small></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<aside class="side-log">
+  <div class="side-h"><span>ログ/出力</span><button class="btn ghost" id="btnReset" style="min-height:28px;padding:4px 8px;font-size:11px">新規</button></div>
+  <div id="log" class="log"></div>
+  <button class="btn primary full" id="btnBuildReport" style="min-height:34px;padding:7px 8px;font-size:12px">診療録生成</button>
+  <div id="report" class="summary-box">未生成</div>
+  <button class="btn ghost full" id="btnCopyReport" style="min-height:32px;padding:6px 8px;font-size:12px">コピー</button>
+</aside>
+
+<nav class="tabs">
+  <button class="tab active" data-view="cpa">CPA情報</button>
+  <button class="tab" data-view="live">蘇生操作</button>
+  <button class="tab" data-view="ecpr">ECPR</button>
+</nav>
+
+<div id="rhythmModal" class="modal"><div class="modal-box">
+  <div class="modal-h">リズム確認<button data-close="rhythmModal">x</button></div>
+  <div class="modal-b"><div class="action-grid">
+    <button class="btn danger" data-rhythm="VF">VF</button><button class="btn danger" data-rhythm="無脈性VT">無脈性VT</button>
+    <button class="btn primary" data-rhythm="PEA">PEA</button><button class="btn primary" data-rhythm="Asystole">Asystole</button>
+    <button class="btn ok" data-rhythm="ROSC">ROSC</button><button class="btn ghost" data-rhythm="判定困難">判定困難</button>
+  </div></div>
+</div></div>
+
+<div id="airwayModal" class="modal"><div class="modal-box">
+  <div class="modal-h">気管挿管情報<button data-close="airwayModal">x</button></div>
+  <div class="modal-b">
+    <div class="grid3">
+      <div><label>時刻</label><input type="time" id="tube_time"></div>
+      <div><label>Tube size</label><select id="tube_size"><option>7.0</option><option selected>7.5</option><option>8.0</option><option>8.5</option></select></div>
+      <div><label>固定cm</label><input id="tube_depth" inputmode="decimal" value="22"></div>
+    </div>
+    <button class="btn primary full" id="btnConfirmTube" style="margin-top:10px">気管挿管を記録</button>
+  </div>
+</div></div>
+
+<div id="roscModal" class="modal"><div class="modal-box">
+  <div class="modal-h">ROSC記録<button data-close="roscModal">x</button></div>
+  <div class="modal-b">
+    <label>ROSC時刻</label>
+    <input type="time" id="rosc_time">
+    <button class="btn ok full" id="btnConfirmRosc" style="margin-top:10px">ROSCを記録</button>
+  </div>
+</div></div>
+
+<div id="cannulaModal" class="modal"><div class="modal-box">
+  <div class="modal-h">カニューレ選択<button data-close="cannulaModal">x</button></div>
+  <div class="modal-b">
+    <label>推定体重レンジ</label>
+    <div class="chips">
+      <button class="chip" data-weight-range="30-45kg">30-45kg</button>
+      <button class="chip" data-weight-range="45-60kg">45-60kg</button>
+      <button class="chip" data-weight-range="60-70kg">60-70kg</button>
+      <button class="chip" data-weight-range="70-85kg">70-85kg</button>
+      <button class="chip" data-weight-range="85-110kg">85-110kg</button>
+    </div>
+    <div class="fixed-summary" id="cann_suggest" style="margin-top:8px">推定体重レンジを選択すると候補を表示します。</div>
+    <div class="grid3">
+      <div><label>送血 FA 候補</label><select id="art_cann_size"><option value="">未選択</option><option>17Fr 18cm</option><option>19Fr 18cm</option><option>21Fr 18cm</option></select></div>
+      <div><label>脱血 FV 候補</label><select id="ven_cann_size"><option value="">未選択</option><option>23Fr 50cm</option><option>25Fr 50cm</option><option>27Fr 50cm</option><option>29Fr 50cm</option></select></div>
+      <div><label>DPC候補</label><select id="dpc_cann_size"><option value="">未選択</option><option>6Fr</option><option>7Fr</option><option>8Fr</option></select></div>
+      <div><label>実送血サイズ</label><input id="art_cann_actual" placeholder="例 19Fr"></div>
+      <div><label>実脱血サイズ</label><input id="ven_cann_actual" placeholder="例 25Fr"></div>
+      <div><label>実DPCサイズ</label><input id="dpc_cann_actual" placeholder="例 6Fr"></div>
+      <div><label>送血固定cm</label><input id="art_cann_cm" inputmode="decimal" placeholder="cm"></div>
+      <div><label>脱血固定cm</label><input id="ven_cann_cm" inputmode="decimal" placeholder="cm"></div>
+      <div><label>DPC固定cm</label><input id="dpc_cann_cm" inputmode="decimal" placeholder="cm"></div>
+    </div>
+    <div class="action-grid three" style="margin-top:10px">
+      <button class="btn primary" id="btnRecordArtCann">送血留置</button>
+      <button class="btn primary" id="btnRecordVenCann">脱血留置</button>
+      <button class="btn ghost" id="btnRecordDpcCann">DPC留置</button>
+    </div>
+  </div>
+</div></div>
+
+<script>
+"use strict";
+class EcprCommanderV5{
+  static KIT_CATEGORIES=[
+    {id:"pcps_kit",name:"PCPSキット",items:["消毒トレー 2個","50mLカテーテルチップシリンジ 2本","10mLシリンジ 4本","剪刀","有鈎鑷子","持針器","外科用強角針","シルク2号","ガーゼ","布鉗子","PCPSドレープ","コードホルダー","防水ドレープ"]},
+    {id:"cannula",name:"カニューレ",items:["送血カニューレ 17/19/21Fr","脱血カニューレ 23/25/27/29Fr","ガイドワイヤー","ダイレーター","DPCシース"]},
+    {id:"pcps_set",name:"PCPS物品セット",items:["PCPS鉗子 4本","洗浄用生食 500mL","オラネジン","ガーゼ","布鉗子 4本","11番メス","ロック付き50mLシリンジ 2個","ベニューラ針 V-1 2個"]},
+    {id:"procedure_env",name:"手技環境",items:["バックボード","台座 2個","レントゲンパネル","オーバーテーブル","手技作業延長台","清潔野セット","ガウン/滅菌手袋","エコープローブカバー"]},
+    {id:"imaging_staff",name:"画像・エコー・人員",items:["エコー","ポータブルレントゲン","放射線技師要請","臨床工学技士要請"]},
+    {id:"jms",name:"JMS本体・回路",items:["ECMO本機","ECMO回路","遠心ポンプ","圧力計","フローバブルセンサー","Air Oxygen blender","ガス配管/酸素ボンベ","冷温水槽/熱交換器","外部バッテリー","ハンドクランク"]}
+  ];
+  static WITNESS_EXCLUSIVE={"目撃あり":"目撃なし","目撃なし":"目撃あり","Bystander CPRあり":"Bystander CPRなし","Bystander CPRなし":"Bystander CPRあり"};
+  constructor(){
+    this.key="ecpr_commander_v5_legacy";
+    this.state=this.load();
+    this._kitDirty=true;
+    this.bind();
+    this.render();
+    setInterval(()=>this.renderTimers(),1000);
+  }
+  defaultState(){
+    return {confirmed:false,cpa:{startType:"プレホスCPA継続",rhythm:"",arrestTime:"",cprTime:"",arrivalTime:"",lastEpiTime:"",witness:[],prehospital:[],epiCount:0,shockCount:0,preEpiAtConfirm:0,preShockAtConfirm:0,tube:"",tubeTime:"",tubeSize:"7.5",tubeDepth:"22",memo:""},live:{cprStartMs:null,flowCprStartMs:null,arrestMs:null,lastEpiMs:null,roscMs:null,roscTime:"",currentRhythm:"",shockCount:0,epiCount:0,amioCount:0,episodes:[]},ecpr:{criteria:[],ecmoCall:null,pcps:null,cann:null,pump:null,tasks:{},cannula:{art:"",ven:"",dpc:"",weightRange:"",artActual:"",venActual:"",dpcActual:"",artCm:"",venCm:"",dpcCm:""}},kits:{checked:{},open:{}},events:[]};
+  }
+  load(){
+    try{
+      const d=this.defaultState(),p=JSON.parse(localStorage.getItem(this.key)||"{}");
+      return {...d,...p,cpa:{...d.cpa,...(p.cpa||{})},live:{...d.live,...(p.live||{})},ecpr:{...d.ecpr,...(p.ecpr||{}),tasks:{...d.ecpr.tasks,...((p.ecpr&&p.ecpr.tasks)||{})},cannula:{...d.ecpr.cannula,...((p.ecpr&&p.ecpr.cannula)||{})}},kits:{...d.kits,...(p.kits||{}),checked:{...d.kits.checked,...((p.kits&&p.kits.checked)||{})},open:{...d.kits.open,...((p.kits&&p.kits.open)||{})}}};
+    }catch(e){return this.defaultState();}
+  }
+  save(){try{localStorage.setItem(this.key,JSON.stringify(this.state));}catch(e){this.toast("保存できません");}}
+  $(id){return document.getElementById(id);}
+  bind(){
+    document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>this.switchView(b.dataset.view)));
+    document.querySelectorAll(".chips[data-group] .chip").forEach(b=>b.addEventListener("click",()=>this.toggleChip(b)));
+    document.querySelectorAll("[data-quick]").forEach(b=>b.addEventListener("click",()=>{this.clickFx(b);this.log("処置",b.dataset.quick);}));
+    document.querySelectorAll("[data-med='amio']").forEach(b=>b.addEventListener("click",()=>this.recordAmio(b)));
+    document.querySelectorAll("[data-step-count]").forEach(b=>b.addEventListener("click",()=>this.stepPrehospitalCount(b.dataset.stepCount,Number(b.dataset.delta),b)));
+    document.querySelectorAll("[data-ecpr]").forEach(b=>b.addEventListener("click",()=>this.markEcprTask(b.dataset.ecpr,b.childNodes[0].textContent.trim())));
+    document.querySelectorAll("[data-open]").forEach(b=>b.addEventListener("click",()=>this.open("airwayModal")));
+    document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",()=>this.close(b.dataset.close)));
+    document.querySelectorAll("[data-rhythm]").forEach(b=>b.addEventListener("click",()=>this.setRhythm(b.dataset.rhythm)));
+    ["cpa_start_type","cpa_rhythm","cpa_arrest_time","cpa_cpr_time","cpa_arrival_time","cpa_last_epi_time","cpa_memo"].forEach(id=>{
+      this.$(id).addEventListener("input",()=>this.updateCpaFromForm());
+      this.$(id).addEventListener("change",()=>this.updateCpaFromForm());
+    });
+    this.$("btnConfirmCpa").addEventListener("click",()=>this.confirmCpa());
+    this.$("btnCpr").addEventListener("click",()=>this.startCpr());
+    this.$("btnRhythm").addEventListener("click",()=>this.open("rhythmModal"));
+    this.$("btnShock").addEventListener("click",()=>this.recordShock());
+    this.$("btnEpi").addEventListener("click",()=>this.recordEpi());
+    this.$("btnAmio").addEventListener("click",()=>this.recordAmio(this.$("btnAmio")));
+    this.$("btnRosc").addEventListener("click",()=>this.recordRosc());
+    this.$("btnConfirmRosc").addEventListener("click",()=>this.confirmRosc());
+    this.$("btnConfirmTube").addEventListener("click",()=>this.confirmTube());
+    this.$("btnEcmoCall").addEventListener("click",()=>this.markEcpr("ecmoCall","ECMOコール"));
+    this.$("btnPcps").addEventListener("click",()=>this.markEcpr("pcps","PCPS宣言"));
+    this.$("btnCann").addEventListener("click",()=>this.markEcpr("cann","カニュレーション開始"));
+    this.$("btnPump").addEventListener("click",()=>this.markEcpr("pump","ECMOポンプオン"));
+    this.$("btnArtCann").addEventListener("click",()=>this.open("cannulaModal"));
+    this.$("btnVenCann").addEventListener("click",()=>this.open("cannulaModal"));
+    this.$("btnDpcCann").addEventListener("click",()=>this.open("cannulaModal"));
+    document.querySelectorAll("[data-weight-range]").forEach(b=>b.addEventListener("click",()=>this.selectWeightRange(b.dataset.weightRange,b)));
+    this.$("btnRecordArtCann").addEventListener("click",()=>this.recordCannula("art"));
+    this.$("btnRecordVenCann").addEventListener("click",()=>this.recordCannula("ven"));
+    this.$("btnRecordDpcCann").addEventListener("click",()=>this.recordCannula("dpc"));
+    this.$("btnBuildReport").addEventListener("click",()=>this.buildReport());
+    this.$("btnCopyReport").addEventListener("click",()=>this.copyReport());
+    this.$("btnReset").addEventListener("click",()=>this.resetCase());
+    document.addEventListener("input",()=>{clearTimeout(this._saveTimer);this._saveTimer=setTimeout(()=>this.save(),500);});
+  }
+  switchView(v){
+    document.querySelectorAll(".view").forEach(x=>x.classList.toggle("active",x.id==="view-"+v));
+    document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.view===v));
+  }
+  toggleChip(btn){
+    const wrap=btn.closest("[data-group]");
+    const group=wrap.dataset.group;
+    if(group==="prehospital"&&btn.dataset.value==="気管挿管"){
+      this.clickFx(btn);
+      this.open("airwayModal");
+      return;
+    }
+    const turningOn=!btn.classList.contains("on");
+    btn.classList.toggle("on");
+    if(turningOn&&group==="witness"){
+      const pair=EcprCommanderV5.WITNESS_EXCLUSIVE[btn.dataset.value];
+      if(pair)wrap.querySelectorAll(".chip").forEach(c=>{if(c.dataset.value===pair)c.classList.remove("on");});
+    }
+    const values=[...wrap.querySelectorAll(".chip.on")].map(x=>x.dataset.value);
+    if(group==="witness"||group==="prehospital")this.state.cpa[group]=values;
+    if(group==="ecprCriteria")this.state.ecpr.criteria=values;
+    this.save();this.render();
+  }
+  updateCpaFromForm(){
+    const c=this.state.cpa;
+    c.startType=this.$("cpa_start_type").value;c.rhythm=this.$("cpa_rhythm").value;c.arrestTime=this.$("cpa_arrest_time").value;c.cprTime=this.$("cpa_cpr_time").value;c.arrivalTime=this.$("cpa_arrival_time").value;c.lastEpiTime=this.$("cpa_last_epi_time").value;
+    c.memo=this.$("cpa_memo").value;
+    this.renderCpaSummary();
+  }
+  stepPrehospitalCount(type,delta,btn){
+    this.clickFx(btn);
+    const c=this.state.cpa;
+    if(type==="epi")c.epiCount=Math.max(0,Number(c.epiCount||0)+delta);
+    if(type==="shock")c.shockCount=Math.max(0,Number(c.shockCount||0)+delta);
+    this.renderCountSteppers();
+    this.renderCpaSummary();
+    this.save();
+  }
+  timeToTodayMs(t){if(!t)return null;const [h,m]=t.split(":").map(Number);const d=new Date();d.setHours(h,m,0,0);return d.getTime();}
+  nowTime(){const d=new Date();return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");}
+  fmtMs(ms){if(!ms)return "--:--";const s=Math.max(0,Math.floor((Date.now()-ms)/1000));return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");}
+  fmtSec(sec){sec=Math.max(0,Math.floor(sec));return String(Math.floor(sec/60)).padStart(2,"0")+":"+String(sec%60).padStart(2,"0");}
+  setTimerProgress(id,sec,limit,warnAt,doneText){
+    const p=this.$(id+"Progress"),r=this.$(id+"Remain"),box=this.$(id+"Box");
+    const active=sec!=null&&sec>=0;
+    const pct=active?Math.min(sec/limit*100,100):0;
+    p.style.width=pct+"%";
+    p.className="timer-progress"+(active&&sec>=limit?" alert":active&&sec>=warnAt?" warn":"");
+    if(r){
+      if(id==="timerArrest")r.textContent="";
+      else if(!active)r.textContent=id==="timerCycle"?"次チェック --:--":id==="timerEpi"?"次投与 --:--":"未開始";
+      else if(sec>=limit)r.textContent=doneText;
+      else r.textContent="経過 "+this.fmtSec(sec);
+    }
+    if(box)box.className="timer "+(active&&sec>=limit?"alert":active&&sec>=warnAt?"warn":"");
+  }
+  confirmCpa(){
+    this.updateCpaFromForm();
+    const c=this.state.cpa,l=this.state.live;
+    this.state.confirmed=true;
+    c.preEpiAtConfirm=Number(c.epiCount||0);
+    c.preShockAtConfirm=Number(c.shockCount||0);
+    l.arrestMs=this.timeToTodayMs(c.arrestTime);
+    l.cprStartMs=this.timeToTodayMs(c.cprTime)||l.cprStartMs;
+    l.flowCprStartMs=l.cprStartMs;
+    l.lastEpiMs=this.timeToTodayMs(c.lastEpiTime);
+    l.currentRhythm=c.rhythm;l.epiCount=c.epiCount;l.shockCount=c.shockCount;
+    this.log("CPA",this.cpaConfirmLogText());
+    this.switchView("live");this.save();this.render();
+  }
+  clickFx(el){if(!el)return;el.classList.remove("pressed");void el.offsetWidth;el.classList.add("pressed");}
+  currentFlowSec(){
+    const fb=this.flowBreakdown();
+    return fb?fb.total:null;
+  }
+  flowBreakdown(endMs){
+    const l=this.state.live;
+    if(!l.arrestMs)return null;
+    const end=endMs!=null?endMs:(l.roscMs||Date.now());
+    const arrest=l.arrestMs,cprStart=l.flowCprStartMs||l.cprStartMs;
+    if(!cprStart||cprStart<=arrest){
+      const total=Math.max(0,Math.floor((end-arrest)/1000));
+      if(cprStart&&cprStart<=arrest)return{noFlow:0,lowFlow:total,total};
+      return{noFlow:total,lowFlow:0,total};
+    }
+    const noFlow=Math.max(0,Math.floor((cprStart-arrest)/1000));
+    const lowFlow=Math.max(0,Math.floor((end-cprStart)/1000));
+    return{noFlow,lowFlow,total:noFlow+lowFlow};
+  }
+  formatFlowBreakdown(fb){
+    return "No flow "+this.formatFlowSec(fb.noFlow)+" / Low flow "+this.formatFlowSec(fb.lowFlow)+" / 合計 "+this.formatFlowSec(fb.total);
+  }
+  startNewArrest(reason){
+    const l=this.state.live,now=Date.now();
+    if(l.arrestMs&&l.roscMs){
+      l.episodes=l.episodes||[];
+      const fb=this.flowBreakdown(l.roscMs);
+      l.episodes.push({arrestMs:l.arrestMs,roscMs:l.roscMs,cprStartMs:l.cprStartMs,rhythm:l.currentRhythm||"",flowSec:fb.total,noFlowSec:fb.noFlow,lowFlowSec:fb.lowFlow});
+    }
+    l.arrestMs=now;l.cprStartMs=now;l.flowCprStartMs=now;l.roscMs=null;l.roscTime="";l.currentRhythm="";
+    this.log("CPA",reason||"再心停止");
+  }
+  startCpr(){this.clickFx(this.$("btnCpr"));const l=this.state.live;if(l.roscMs)this.startNewArrest("再心停止 - CPR再開");else{if(!l.cprStartMs)l.cprStartMs=Date.now();if(!l.flowCprStartMs)l.flowCprStartMs=l.cprStartMs;}this.log("CPR","CPR開始/継続");this.save();this.render();}
+  setRhythm(r){
+    const l=this.state.live;
+    if(l.roscMs&&["VF","無脈性VT","PEA","Asystole","判定困難"].includes(r))this.startNewArrest("再心停止 - 波形 "+r);
+    if(r==="ROSC"){
+      l.currentRhythm=r;
+      this.close("rhythmModal");
+      this.prepareRoscModal();
+      this.open("roscModal");
+      return;
+    }
+    l.currentRhythm=r;
+    this.log("波形","リズム確認: "+r);
+    l.cprStartMs=Date.now();
+    this.close("rhythmModal");this.save();this.render();
+  }
+  recordShock(){this.clickFx(this.$("btnShock"));this.state.live.shockCount++;this.state.cpa.shockCount=this.state.live.shockCount;this.log("除細動","除細動 "+this.state.live.shockCount+"回目");this.state.live.cprStartMs=Date.now();this.save();this.render();}
+  recordEpi(){this.clickFx(this.$("btnEpi"));this.state.live.epiCount++;this.state.cpa.epiCount=this.state.live.epiCount;this.state.live.lastEpiMs=Date.now();this.log("薬剤","Adrenaline 1mg "+this.state.live.epiCount+"回目");this.save();this.render();}
+  recordAmio(el){this.clickFx(el);this.state.live.amioCount=(this.state.live.amioCount||0)+1;const dose=this.state.live.amioCount===1?"300mg":"150mg";this.log("薬剤","Amiodarone "+dose+" "+this.state.live.amioCount+"回目");this.save();this.render();}
+  recordRosc(){
+    if(this.state.live.roscMs)return;
+    this.clickFx(this.$("btnRosc"));
+    this.prepareRoscModal();
+    this.open("roscModal");
+  }
+  prepareRoscModal(){
+    const l=this.state.live;
+    this.$("rosc_time").value=l.roscTime||this.nowTime();
+  }
+  confirmRosc(){
+    const l=this.state.live;
+    if(l.roscMs)return;
+    const t=this.$("rosc_time").value||this.nowTime();
+    l.roscTime=t;
+    l.roscMs=this.timeToTodayMs(t)||Date.now();
+    l.currentRhythm="ROSC";
+    const fb=this.flowBreakdown();
+    this.log("転帰","ROSC 心拍再開"+(fb?" ("+this.formatFlowBreakdown(fb)+")":""),t);
+    this.close("roscModal");
+    this.save();this.render();
+  }
+  prepareTubeModal(){const c=this.state.cpa;this.$("tube_time").value=c.tubeTime||this.nowTime();this.$("tube_size").value=c.tubeSize||"7.5";this.$("tube_depth").value=c.tubeDepth||"22";}
+  confirmTube(){const c=this.state.cpa;c.tubeTime=this.$("tube_time").value||this.nowTime();c.tubeSize=this.$("tube_size").value;c.tubeDepth=this.$("tube_depth").value;c.tube=c.tubeTime+" ID"+c.tubeSize+"mm "+c.tubeDepth+"cm";if(!c.prehospital.includes("気管挿管"))c.prehospital.push("気管挿管");this.log("気道","気管挿管 "+c.tube);this.close("airwayModal");this.save();this.render();}
+  prepareCannulaModal(){
+    const c=this.state.ecpr.cannula||{};
+    this.$("art_cann_size").value=c.art||"";this.$("ven_cann_size").value=c.ven||"";this.$("dpc_cann_size").value=c.dpc||"";
+    this.$("art_cann_actual").value=c.artActual||"";this.$("ven_cann_actual").value=c.venActual||"";this.$("dpc_cann_actual").value=c.dpcActual||"";
+    this.$("art_cann_cm").value=c.artCm||"";this.$("ven_cann_cm").value=c.venCm||"";this.$("dpc_cann_cm").value=c.dpcCm||"";
+    document.querySelectorAll("[data-weight-range]").forEach(b=>b.classList.toggle("on",b.dataset.weightRange===c.weightRange));
+  }
+  cannulaSuggestion(range){
+    return {
+      "30-45kg":{range:"30-45kg",ven:"23Fr 50cm",art:"17Fr 18cm"},
+      "45-60kg":{range:"45-60kg",ven:"23Fr 50cm",art:"17Fr 18cm",note:"BSA>1.5が明らかなら脱血25Frも検討"},
+      "60-70kg":{range:"60-70kg",ven:"25Fr 50cm",art:"19Fr 18cm"},
+      "70-85kg":{range:"70-85kg",ven:"27Fr 50cm",art:"19Fr 18cm"},
+      "85-110kg":{range:"85-110kg",ven:"29Fr 50cm",art:"21Fr 18cm"}
+    }[range]||null;
+  }
+  selectWeightRange(range,btn){
+    this.clickFx(btn);
+    document.querySelectorAll("[data-weight-range]").forEach(b=>b.classList.toggle("on",b===btn));
+    const r=this.cannulaSuggestion(range),c=this.state.ecpr.cannula;
+    if(!r)return;
+    c.weightRange=range;
+    this.$("cann_suggest").textContent="候補: 送血 "+r.art+" / 脱血 "+r.ven+"（"+r.range+"）";
+    if(r.note)this.$("cann_suggest").textContent+=" / "+r.note;
+    this.$("art_cann_size").value=r.art;
+    this.$("ven_cann_size").value=r.ven;
+    this.$("art_cann_actual").value=r.art.split(" ")[0];
+    this.$("ven_cann_actual").value=r.ven.split(" ")[0];
+    c.art=this.$("art_cann_size").value;c.ven=this.$("ven_cann_size").value;
+    c.artActual=this.$("art_cann_actual").value;c.venActual=this.$("ven_cann_actual").value;
+    this.save();
+  }
+  recordCannula(kind){
+    const c=this.state.ecpr.cannula;
+    c.art=this.$("art_cann_size").value;c.ven=this.$("ven_cann_size").value;c.dpc=this.$("dpc_cann_size").value;
+    c.artActual=this.$("art_cann_actual").value;c.venActual=this.$("ven_cann_actual").value;c.dpcActual=this.$("dpc_cann_actual").value;
+    c.artCm=this.$("art_cann_cm").value;c.venCm=this.$("ven_cann_cm").value;c.dpcCm=this.$("dpc_cann_cm").value;
+    if(kind==="art"){const v=c.artActual||c.art;if(!v){this.toast("送血サイズを入力");return;}this.state.ecpr.tasks.art_cann=this.nowTime();this.log("ECPR","送血カニューレ留置 "+v+(c.artCm?" 固定"+c.artCm+"cm":""));}
+    if(kind==="ven"){const v=c.venActual||c.ven;if(!v){this.toast("脱血サイズを入力");return;}this.state.ecpr.tasks.ven_cann=this.nowTime();this.log("ECPR","脱血カニューレ留置 "+v+(c.venCm?" 固定"+c.venCm+"cm":""));}
+    if(kind==="dpc"){const v=c.dpcActual||c.dpc;if(!v){this.toast("DPCサイズを入力");return;}this.state.ecpr.tasks.dpc=this.nowTime();this.log("ECPR","DPC留置 "+v+(c.dpcCm?" 固定"+c.dpcCm+"cm":""));}
+    this.close("cannulaModal");
+    this.save();this.render();
+  }
+  markEcpr(key,label){this.clickFx(this.$({ecmoCall:"btnEcmoCall",pcps:"btnPcps",cann:"btnCann",pump:"btnPump"}[key]));this.state.ecpr[key]=this.nowTime();this.log("ECPR",label);this.save();this.render();}
+  ecprTaskText(key,label){
+    return {
+      piv:"末梢静脈路確保",
+      io:"骨髄針留置",
+      aline:"右橈骨A-line確保",
+      cpr_quality:"CPR質確認",
+      echo:"エコー準備",
+      prime:"回路プライミング",
+      act:"ACT測定",
+      heparin:"ヘパリン投与",
+      family:"家族/方針確認",
+      role:"役割確認",
+      art_cann:"送血カニューレ留置",
+      ven_cann:"脱血カニューレ留置",
+      wire_xp:"ガイドワイヤーX線確認",
+      connect:"送血/脱血接続・エア抜き確認",
+      dpc:"DPC留置/確認",
+      right_spo2:"右手SpO2/右橈骨ABG確認",
+      ct_route:"CT導線決定",
+      cag_route:"CAG/PCI導線決定",
+      flow_trouble:"脱血不良確認",
+      bubble:"気泡/結露対応"
+    }[key]||label;
+  }
+  markEcprTask(key,label){
+    this.clickFx(document.querySelector(`[data-ecpr="${key}"]`));
+    this.state.ecpr.tasks=this.state.ecpr.tasks||{};
+    this.state.ecpr.tasks[key]=this.nowTime();
+    const text=this.ecprTaskText(key,label);
+    this.log("ECPR",text);
+    this.save();this.render();
+  }
+  log(cat,text,timeOverride){this.state.events.push({t:timeOverride||this.nowTime(),cat,text});this.renderLog();this.save();}
+  summaryText(){
+    const c=this.state.cpa;
+    return ["【CPA状況】",c.startType,c.rhythm&&"初期波形: "+c.rhythm,c.arrestTime&&"心停止: "+c.arrestTime,c.cprTime&&"CPR開始: "+c.cprTime,c.arrivalTime&&"病院到着/接触: "+c.arrivalTime,c.witness.length&&"目撃/Bystander: "+c.witness.join(", "),c.prehospital.length&&"プレホス処置: "+c.prehospital.join(", "),c.epiCount&&"Adrenaline: "+c.epiCount+"回",c.shockCount&&"除細動: "+c.shockCount+"回",c.tube&&"気道: "+c.tube,c.memo&&"メモ: "+c.memo].filter(Boolean).join("\n");
+  }
+  renderCpaSummary(){
+    const c=this.state.cpa,l=this.state.live;
+    if(!this.state.confirmed){
+      const hasData=c.rhythm||c.arrestTime||c.cprTime||c.arrivalTime||c.lastEpiTime||c.witness.length||c.prehospital.length||c.memo||Number(c.epiCount)>0||Number(c.shockCount)>0;
+      if(!hasData){this.$("headerSummary").textContent="CPA情報未確定";return;}
+    }
+    const parts=[c.startType,c.rhythm&&"波形:"+c.rhythm,c.arrestTime&&"停止"+c.arrestTime,c.cprTime&&"CPR"+c.cprTime,(c.epiCount||l.epiCount)&&"Adr "+(l.epiCount||c.epiCount)+"回",(c.shockCount||l.shockCount)&&"DC "+(l.shockCount||c.shockCount)+"回",c.tube&&"挿管 "+c.tube].filter(Boolean);
+    this.$("headerSummary").textContent=parts.length?parts.join(" / "):"CPA情報未確定";
+  }
+  renderCountSteppers(){
+    const c=this.state.cpa;
+    const epi=this.$("cpa_epi_count"),shock=this.$("cpa_shock_count");
+    if(epi){epi.textContent=c.epiCount||0;epi.classList.toggle("on",Number(c.epiCount||0)>0);}
+    if(shock){shock.textContent=c.shockCount||0;shock.classList.toggle("on",Number(c.shockCount||0)>0);}
+  }
+  renderTimers(){
+    const l=this.state.live;
+    const cycleLimit=120,epiLimit=240;
+    const end=l.roscMs||Date.now();
+    const arrest=l.arrestMs?(end-l.arrestMs)/1000:null;
+    const cycle=(l.cprStartMs&&!l.roscMs)?(Date.now()-l.cprStartMs)/1000:null;
+    const epi=(l.lastEpiMs&&!l.roscMs)?(Date.now()-l.lastEpiMs)/1000:null;
+    this.$("timerArrest").textContent=arrest!=null?this.fmtSec(arrest):"--:--";
+    this.$("timerCycle").textContent=l.roscMs?"STOP":(cycle!=null?this.fmtSec(Math.max(0,cycleLimit-cycle)):"--:--");
+    this.$("timerEpi").textContent=l.roscMs?"STOP":(epi!=null?this.fmtSec(Math.max(0,epiLimit-epi)):"--:--");
+    this.setTimerProgress("timerArrest",arrest,3600,2700,"60分超");
+    this.setTimerProgress("timerCycle",cycle,cycleLimit,100,"確認可");
+    this.setTimerProgress("timerEpi",epi,epiLimit,210,"投与可");
+  }
+  renderLog(){
+    const el=this.$("log");
+    el.innerHTML=this.state.events.length?[...this.state.events].reverse().map(e=>`<div class="log-row"><span class="log-time">${e.t}</span><span class="log-cat">${e.cat}</span><span class="log-text">${this.escape(e.text)}</span></div>`).join(""):"ログ未記録";
+  }
+  renderEcprFlow(){
+    const e=this.state.ecpr,t=e.tasks||{};
+    const done={
+      call:!!e.ecmoCall,
+      decision:!!e.pcps,
+      access:!!(t.piv||t.io||t.aline),
+      prepare:!!(t.echo||t.prime||t.act||t.heparin),
+      cann:!!(e.cann||t.art_cann||t.ven_cann||t.wire_xp||t.connect),
+      support:!!(e.pump||t.dpc||t.right_spo2||t.ct_route||t.cag_route)
+    };
+    document.querySelectorAll("#ecprFlow .lane").forEach(x=>{
+      const key=x.dataset.flow;
+      x.classList.toggle("done",!!done[key]);
+      x.classList.toggle("on",!done[key]&&(key==="call"||done.call));
+    });
+    document.querySelectorAll("[data-ecpr]").forEach(b=>b.classList.toggle("done",!!t[b.dataset.ecpr]));
+    [["btnEcmoCall",e.ecmoCall],["btnPcps",e.pcps],["btnCann",e.cann],["btnPump",e.pump],["btnArtCann",t.art_cann],["btnVenCann",t.ven_cann],["btnDpcCann",t.dpc]].forEach(([id,on])=>{const b=this.$(id);if(b)b.classList.toggle("done",!!on);});
+  }
+  toggleKitCategory(id){
+    this.state.kits.open[id]=!this.state.kits.open[id];
+    this._kitDirty=true;
+    this.save();this.renderKitChecklist();
+  }
+  toggleKitItem(catId,itemIdx,checked){
+    const key=catId+"_"+itemIdx;
+    this.state.kits.checked[key]=checked;
+    this._kitDirty=true;
+    this.save();this.renderKitChecklist();
+  }
+  renderKitChecklist(){
+    const wrap=this.$("kitChecklist");if(!wrap)return;
+    wrap.innerHTML=EcprCommanderV5.KIT_CATEGORIES.map(cat=>{
+      const checkedCount=cat.items.filter((_,i)=>this.state.kits.checked[cat.id+"_"+i]).length;
+      const done=checkedCount===cat.items.length;
+      const open=!!this.state.kits.open[cat.id];
+      const items=cat.items.map((item,i)=>{
+        const key=cat.id+"_"+i,checked=!!this.state.kits.checked[key];
+        return `<label class="kit-item"><input type="checkbox" data-kit-cat="${cat.id}" data-kit-idx="${i}" ${checked?"checked":""}>${item}</label>`;
+      }).join("");
+      return `<div class="kit-cat ${open?"open":""} ${done?"done":""}">
+        <button type="button" class="kit-head" data-kit-open="${cat.id}"><span>${open?"v":">"}</span><span>${cat.name}</span><span class="kit-count">${checkedCount}/${cat.items.length}${done?" OK":""}</span></button>
+        <div class="kit-body">${items}</div>
+      </div>`;
+    }).join("");
+    wrap.querySelectorAll("[data-kit-open]").forEach(b=>b.addEventListener("click",()=>this.toggleKitCategory(b.dataset.kitOpen)));
+    wrap.querySelectorAll("[data-kit-cat]").forEach(c=>c.addEventListener("change",()=>this.toggleKitItem(c.dataset.kitCat,Number(c.dataset.kitIdx),c.checked)));
+    this._kitDirty=false;
+  }
+  reportDivider(){return "============================================================";}
+  reportSection(n,title){return "【"+n+". "+title+"】";}
+  formatFlowSec(sec){const s=Math.max(0,Math.floor(sec||0));return Math.floor(s/60)+"分"+String(s%60).padStart(2,"0")+"秒";}
+  cpaConfirmLogText(){
+    const c=this.state.cpa;
+    return "情報確定: "+[c.startType,c.rhythm&&"波形"+c.rhythm,c.arrestTime&&"停止"+c.arrestTime,c.cprTime&&"CPR"+c.cprTime,c.arrivalTime&&"到着"+c.arrivalTime].filter(Boolean).join(", ");
+  }
+  buildCpaSection(){
+    const c=this.state.cpa,lines=[this.reportSection(1,"心停止・搬入情報")];
+    if(c.startType)lines.push("開始状況: "+c.startType);
+    if(c.rhythm)lines.push("初期波形: "+c.rhythm);
+    if(c.arrestTime)lines.push("心停止時刻: "+c.arrestTime);
+    if(c.cprTime)lines.push("CPR開始時刻: "+c.cprTime);
+    if(c.arrivalTime)lines.push("病院到着/接触: "+c.arrivalTime);
+    if(c.lastEpiTime)lines.push("最終アドレナリン(搬入前): "+c.lastEpiTime);
+    if(c.witness.length)lines.push("目撃/Bystander: "+c.witness.join(", "));
+    if(c.prehospital.length)lines.push("プレホス処置: "+c.prehospital.join(", "));
+    if(c.tube)lines.push("気道確保: "+c.tube);
+    if(c.memo)lines.push("搬入前メモ: "+c.memo);
+    return lines;
+  }
+  buildResusSummary(){
+    const c=this.state.cpa,l=this.state.live;
+    const preEpi=Number(c.preEpiAtConfirm!=null?c.preEpiAtConfirm:c.epiCount||0);
+    const preShock=Number(c.preShockAtConfirm!=null?c.preShockAtConfirm:c.shockCount||0);
+    const totalEpi=Math.max(preEpi,Number(l.epiCount||0)),totalShock=Math.max(preShock,Number(l.shockCount||0));
+    const lines=[this.reportSection(2,"蘇生サマリー")];
+    if(totalEpi)lines.push("Adrenaline: 合計"+totalEpi+"回 (プレホス "+preEpi+" / 院内 "+Math.max(0,totalEpi-preEpi)+")");
+    if(totalShock)lines.push("除細動: 合計"+totalShock+"回 (プレホス "+preShock+" / 院内 "+Math.max(0,totalShock-preShock)+")");
+    if(l.amioCount)lines.push("Amiodarone: "+l.amioCount+"回");
+    if(l.currentRhythm)lines.push("最終波形: "+l.currentRhythm);
+    if(l.roscTime)lines.push("ROSC時刻: "+l.roscTime);
+    const fb=this.flowBreakdown();
+    if(fb){
+      lines.push("No flow: "+this.formatFlowSec(fb.noFlow));
+      lines.push("Low flow: "+this.formatFlowSec(fb.lowFlow));
+      lines.push("No+Low flow合計: "+this.formatFlowSec(fb.total)+(l.roscMs?" (ROSC)":""));
+    }
+    (l.episodes||[]).forEach((ep,i)=>{
+      const no=ep.noFlowSec!=null?ep.noFlowSec:ep.flowSec||0;
+      const low=ep.lowFlowSec!=null?ep.lowFlowSec:0;
+      const total=ep.flowSec!=null?ep.flowSec:no+low;
+      lines.push("第"+(i+1)+"心停止: No flow "+this.formatFlowSec(no)+" / Low flow "+this.formatFlowSec(low)+" / 合計 "+this.formatFlowSec(total)+" -> ROSC"+(ep.rhythm?" (波形 "+ep.rhythm+")":""));
+    });
+    if(l.roscMs)lines.push("転帰: ROSC");
+    else if(this.state.confirmed)lines.push("転帰: 蘇生継続中");
+    return lines;
+  }
+  buildTimelineSection(){
+    const catOrder=["CPA","CPR","波形","除細動","薬剤","気道","処置","ECPR","転帰"];
+    const lines=[this.reportSection(3,"タイムライン")];
+    const events=[...this.state.events].sort((a,b)=>a.t.localeCompare(b.t)||catOrder.indexOf(a.cat)-catOrder.indexOf(b.cat));
+    if(events.length)events.forEach(e=>lines.push(e.t+" "+e.text));
+    else lines.push("記録なし");
+    return lines;
+  }
+  buildEcprSection(){
+    const e=this.state.ecpr,cn=e.cannula||{},lines=[this.reportSection(4,"ECPR")];
+    if(e.criteria.length)lines.push("適応根拠: "+e.criteria.join(", "));
+    [["ecmoCall","ECMOコール"],["pcps","PCPS宣言"],["cann","カニュレーション開始"],["pump","ECMOポンプオン"]].forEach(([k,label])=>{if(e[k])lines.push(e[k]+" "+label);});
+    const hasCann=cn.artActual||cn.venActual||cn.art||cn.ven||cn.dpcActual;
+    if(hasCann){
+      lines.push("カニューレ:");
+      if(cn.artActual||cn.art)lines.push("  送血: "+(cn.artActual||cn.art)+(cn.artCm?" 固定"+cn.artCm+"cm":""));
+      if(cn.venActual||cn.ven)lines.push("  脱血: "+(cn.venActual||cn.ven)+(cn.venCm?" 固定"+cn.venCm+"cm":""));
+      if(cn.dpcActual||cn.dpc)lines.push("  DPC: "+(cn.dpcActual||cn.dpc)+(cn.dpcCm?" 固定"+cn.dpcCm+"cm":""));
+      if(cn.weightRange)lines.push("  体重レンジ: "+cn.weightRange);
+    }
+    const tasks=Object.entries(e.tasks||{}).map(([k,v])=>({t:v,text:this.ecprTaskText(k,k)})).sort((a,b)=>a.t.localeCompare(b.t));
+    if(tasks.length){lines.push("処置記録:");tasks.forEach(x=>lines.push("  "+x.t+" "+x.text));}
+    if(!e.criteria.length&&!e.ecmoCall&&!tasks.length&&!hasCann)lines.push("記録なし");
+    return lines;
+  }
+  buildReport(){
+    const lines=[
+      "心肺蘇生報告書",
+      this.reportDivider(),
+      "",
+      ...this.buildCpaSection(),
+      "",
+      ...this.buildResusSummary(),
+      "",
+      ...this.buildTimelineSection(),
+      "",
+      ...this.buildEcprSection(),
+      "",
+      this.reportDivider()
+    ];
+    this.$("report").textContent=lines.join("\n");
+  }
+  copyReport(){const txt=this.$("report").textContent||"";if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>this.toast("コピーしました")).catch(()=>this.legacyCopy(txt));else this.legacyCopy(txt);}
+  legacyCopy(txt){const ta=document.createElement("textarea");ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);this.toast("コピーしました");}
+  resetCase(){if(!confirm("新規症例としてリセットしますか?"))return;localStorage.removeItem(this.key);this.state=this.defaultState();this._kitDirty=true;document.querySelectorAll(".chip.on").forEach(c=>c.classList.remove("on"));this.restoreForm();this.render();}
+  restoreForm(){
+    const c=this.state.cpa;
+    this.$("cpa_start_type").value=c.startType;this.$("cpa_rhythm").value=c.rhythm;this.$("cpa_arrest_time").value=c.arrestTime;this.$("cpa_cpr_time").value=c.cprTime;this.$("cpa_arrival_time").value=c.arrivalTime;this.$("cpa_last_epi_time").value=c.lastEpiTime;this.$("cpa_memo").value=c.memo;
+    this.renderCountSteppers();
+    document.querySelectorAll("[data-group='witness'] .chip").forEach(b=>b.classList.toggle("on",c.witness.includes(b.dataset.value)));
+    document.querySelectorAll("[data-group='prehospital'] .chip").forEach(b=>b.classList.toggle("on",c.prehospital.includes(b.dataset.value)));
+    document.querySelectorAll("[data-group='ecprCriteria'] .chip").forEach(b=>b.classList.toggle("on",this.state.ecpr.criteria.includes(b.dataset.value)));
+  }
+  render(){
+    this.restoreForm();this.renderCpaSummary();this.renderTimers();this.renderLog();this.renderEcprFlow();
+    if(this._kitDirty)this.renderKitChecklist();
+    this._kitDirty=false;
+    this.$("confirmedPill").textContent=this.state.confirmed?"CPA確定済み":"CPA未確定";
+    this.$("confirmedPill").classList.toggle("on",this.state.confirmed);
+    const l=this.state.live;
+    this.$("epiBadge").textContent=l.epiCount||this.state.cpa.epiCount||0;
+    this.$("shockBadge").textContent=l.shockCount||this.state.cpa.shockCount||0;
+    this.$("amioBadge").textContent=l.amioCount||0;
+    this.$("amioDoseHint").textContent=(l.amioCount||0)===0?"次 300mg":"次 150mg";
+    this.$("nextHint").textContent=l.roscMs?"ROSC後ケア、原因検索、ECPR/PCI/CT導線を確認します。":l.currentRhythm?("現在波形: "+l.currentRhythm+"。2分ごとの評価と薬剤タイミングを確認します。"):"CPA情報確定後、またはCPR開始/継続からライブ操作できます。";
+  }
+  open(id){if(id==="airwayModal")this.prepareTubeModal();if(id==="cannulaModal")this.prepareCannulaModal();if(id==="roscModal")this.prepareRoscModal();this.$(id).classList.add("show");}
+  close(id){this.$(id).classList.remove("show");}
+  toast(msg){const old=document.getElementById("toast_msg");if(old)old.remove();const t=document.createElement("div");t.id="toast_msg";t.style.cssText="position:fixed;left:50%;bottom:86px;transform:translateX(-50%);background:#111827;color:#fff;padding:9px 16px;border-radius:999px;z-index:80;font-size:13px;font-weight:800";t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),1400);}
+  escape(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
+}
+document.addEventListener("DOMContentLoaded",()=>new EcprCommanderV5());
+</script>
+</body>
+</html>
