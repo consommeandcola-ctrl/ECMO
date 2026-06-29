@@ -1,4 +1,6 @@
-node_modules/
-.gemini/
-test-results/
-.agents/
+# Ignore everything by default
+/*
+
+# Allow tracking of v7.0 directory and .gitignore
+!/v7.0/
+!/.gitignore
