@@ -514,27 +514,12 @@ input[type=time]{position:relative}
   <div class="modal-b">
     <div class="grid2">
       <div><label>リーダー</label><input id="role_leader" list="doctor_list" placeholder="選択または入力"></div>
-      <div><label>穿刺担当</label><input id="role_cannulator" list="doctor_list" placeholder="選択または入力"></div>
+      <div><label>穿刺担当</label><input id="role_cannulator" list="doctor_list_cann" placeholder="選択または入力"></div>
       <div><label>CE/体外循環</label><input id="role_ce" placeholder="氏名"></div>
       <div><label>記録担当</label><input id="role_recorder" placeholder="氏名"></div>
     </div>
-    <datalist id="doctor_list">
-      <option value="吉原"></option>
-      <option value="高間"></option>
-      <option value="大西"></option>
-      <option value="上村"></option>
-      <option value="伊福"></option>
-      <option value="山尾"></option>
-      <option value="奥田"></option>
-      <option value="嶽崎"></option>
-      <option value="井田"></option>
-      <option value="萬福"></option>
-      <option value="岩崎"></option>
-      <option value="中村"></option>
-      <option value="鈴木"></option>
-      <option value="津代"></option>
-      <option value="有馬"></option>
-    </datalist>
+    <datalist id="doctor_list"></datalist>
+    <datalist id="doctor_list_cann"></datalist>
     <button class="btn primary full" id="btnConfirmRole" style="margin-top:10px">役割を記録</button>
   </div>
 </div></div>
@@ -589,6 +574,7 @@ class EcprCommanderV7{
     {id:"imaging_staff",name:"画像・エコー・人員",items:["エコー","ポータブルレントゲン","放射線技師要請","臨床工学技士要請"]},
     {id:"jms",name:"JMS本体・回路",items:["ECMO本機","ECMO回路","遠心ポンプ","圧力計","フローバブルセンサー","Air Oxygen blender","ガス配管/酸素ボンベ","冷温水槽/熱交換器","外部バッテリー","ハンドクランク"]}
   ];
+  static DOCTORS=["吉原","高間","大西","上村","伊福","山尾","奥田","嶽崎","井田","萬福","岩崎","中村","鈴木","津代","有馬"];
   static WITNESS_EXCLUSIVE={"目撃あり":"目撃なし","目撃なし":"目撃あり","Bystander CPRあり":"Bystander CPRなし","Bystander CPRなし":"Bystander CPRあり"};
   static CANNULA_OPTS={
     art:[{v:"",l:"未選択"},{v:"14Fr 15cm",l:"14Fr 15cm"},{v:"15Fr 15cm",l:"15Fr 15cm"},{v:"16Fr 18cm",l:"16Fr 18cm"},{v:"17Fr 18cm",l:"17Fr 18cm"},{v:"19Fr 18cm",l:"19Fr 18cm"},{v:"21Fr 18cm",l:"21Fr 18cm"}],
@@ -599,6 +585,7 @@ class EcprCommanderV7{
     this.key="ecpr_commander_v7";
     this.state=this.load();
     this._kitDirty=true;
+    this.populateDoctorLists();
     this.bind();
     this.render();
     setInterval(()=>this.renderTimers(),1000);
@@ -624,6 +611,10 @@ class EcprCommanderV7{
   }
   save(){try{localStorage.setItem(this.key,JSON.stringify(this.state));}catch(e){this.toast("保存できません");}}
   $(id){return document.getElementById(id);}
+  populateDoctorLists(){
+    const opts=EcprCommanderV7.DOCTORS.map(n=>`<option value="${this.escape(n)}"></option>`).join("");
+    ["doctor_list","doctor_list_cann"].forEach(id=>{const d=this.$(id);if(d)d.innerHTML=opts;});
+  }
   bind(){
     document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>this.switchView(b.dataset.view)));
     document.querySelectorAll(".chips[data-group] .chip").forEach(b=>b.addEventListener("click",()=>this.toggleChip(b)));
