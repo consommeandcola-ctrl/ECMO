@@ -639,7 +639,7 @@ class EcprCommanderV7{
       this.$(id).addEventListener("change",()=>this.updateCpaFromForm());
     });
     this.$("btnConfirmCpa").addEventListener("click",()=>this.confirmCpa());
-    this.$("btnFormReset").addEventListener("click",()=>this.resetCpaForm());
+    this.$("btnFormReset").addEventListener("click",()=>this.resetCase());
     this.$("btnCpr").addEventListener("click",()=>this.startCpr());
     this.$("btnRhythm").addEventListener("click",()=>this.open("rhythmModal"));
     this.$("btnShock").addEventListener("click",()=>this.recordShock());
