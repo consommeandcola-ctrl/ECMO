@@ -1004,14 +1004,14 @@ class EcprCommanderV7{
     this.fillCannulaSelect("art_cann_size","art",c.art);
     this.fillCannulaSelect("ven_cann_size","ven",c.ven);
     this.fillCannulaSelect("dpc_cann_size","dpc",c.dpc);
-    this.$("art_cann_actual").value=c.artActual||"";this.$("ven_cann_actual").value=c.venActual||"";this.$("dpc_cann_actual").value=c.dpcActual||"";
+    this.$("art_cann_actual").value=c.artActual||"16Fr";this.$("ven_cann_actual").value=c.venActual||"20Fr";this.$("dpc_cann_actual").value=c.dpcActual||"";
     this.$("art_cann_cm").value=c.artCm||"";this.$("ven_cann_cm").value=c.venCm||"";this.$("dpc_cann_cm").value=c.dpcCm||"";
     this.$("art_cann_site").value=c.artSite||"";this.$("ven_cann_site").value=c.venSite||"";
     this.syncArtSizeChips();this.syncArtSiteChips();
     document.querySelectorAll("[data-weight-range]").forEach(b=>b.classList.toggle("on",b.dataset.weightRange===c.weightRange));
     if(f==="dpc")this.$("cann_suggest").textContent="4Frまたは5Frを選択";
     else if(c.weightRange)this.updateCannulaSuggest(c.weightRange);
-    else this.$("cann_suggest").textContent="推定体重レンジを選択すると候補を表示します。";
+    else this.$("cann_suggest").textContent="既定: 送血16Fr / 脱血20Fr。体重レンジは参考表示のみ。";
   }
   cannulaSuggestion(range){
     return {
@@ -1023,30 +1023,15 @@ class EcprCommanderV7{
     }[range]||null;
   }
   updateCannulaSuggest(range){
-    const r=this.cannulaSuggestion(range),c=this.state.ecpr.cannula,f=this._cannulaFocus||"all";
+    const r=this.cannulaSuggestion(range),f=this._cannulaFocus||"all";
     if(!r)return;
-    c.weightRange=range;
-    if(f==="ven"){
-      this.$("cann_suggest").textContent="候補: 脱血 "+r.ven+"（"+r.range+"）";
-      if(r.note)this.$("cann_suggest").textContent+=" / "+r.note;
-      this.$("ven_cann_size").value=r.ven;
-      this.$("ven_cann_actual").value=r.ven.split(" ")[0];
-      c.ven=r.ven;c.venActual=r.ven.split(" ")[0];
-    }else if(f==="art"){
-      this.$("cann_suggest").textContent="候補: 送血 "+r.art+"（"+r.range+"）";
-      this.$("art_cann_size").value=r.art;
-      this.$("art_cann_actual").value=r.art.split(" ")[0];
-      c.art=r.art;c.artActual=r.art.split(" ")[0];
-    }else{
-      this.$("cann_suggest").textContent="候補: 送血 "+r.art+" / 脱血 "+r.ven+"（"+r.range+"）";
-      if(r.note)this.$("cann_suggest").textContent+=" / "+r.note;
-      this.$("art_cann_size").value=r.art;
-      this.$("ven_cann_size").value=r.ven;
-      this.$("art_cann_actual").value=r.art.split(" ")[0];
-      this.$("ven_cann_actual").value=r.ven.split(" ")[0];
-      c.art=r.art;c.ven=r.ven;
-      c.artActual=r.art.split(" ")[0];c.venActual=r.ven.split(" ")[0];
-    }
+    this.state.ecpr.cannula.weightRange=range;
+    // 体重レンジは参考表示のみ。実サイズ(既定16/20)は自動入力しない。
+    let txt;
+    if(f==="ven")txt="参考(体重"+r.range+"): 脱血 "+r.ven+(r.note?" / "+r.note:"");
+    else if(f==="art")txt="参考(体重"+r.range+"): 送血 "+r.art;
+    else txt="参考(体重"+r.range+"): 送血 "+r.art+" / 脱血 "+r.ven+(r.note?" / "+r.note:"");
+    this.$("cann_suggest").textContent=txt;
   }
   selectWeightRange(range,btn){
     this.clickFx(btn);
