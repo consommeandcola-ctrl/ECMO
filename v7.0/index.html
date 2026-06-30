@@ -344,7 +344,6 @@ input[type=time]{position:relative}
         <div class="lane-grid" id="ecprFlow">
           <div class="lane" data-flow="call"><div class="n">召集</div><div class="s">ECMOコール</div></div>
           <div class="lane" data-flow="decision"><div class="n">GO判断</div><div class="s">PCPS宣言</div></div>
-          <div class="lane" data-flow="access"><div class="n">アクセス</div><div class="s">末梢/骨髄</div></div>
           <div class="lane" data-flow="prepare"><div class="n">準備</div><div class="s">エコー/ACT/Prime</div></div>
           <div class="lane" data-flow="cann"><div class="n">穿刺</div><div class="s">送血/脱血/順行下肢</div></div>
           <div class="lane" data-flow="support"><div class="n">循環確立</div><div class="s">ポンプ/原因治療</div></div>
@@ -375,16 +374,7 @@ input[type=time]{position:relative}
           </div>
         </div>
         <div class="board-section">
-          <div class="board-h"><span>2 CPR・アクセス</span><span>ACLS</span></div>
-          <div class="board-b ecpr-btn-grid">
-            <button class="btn primary btn-mini" data-ecpr="piv">末梢静脈路確保<small>IV line</small></button>
-            <button class="btn primary btn-mini" data-ecpr="io">骨髄針留置<small>IO line</small></button>
-            <button class="btn ghost btn-mini" data-ecpr="cpr_quality">CPR質確認<small>EtCO2/交代/深さ</small></button>
-            <button class="btn ghost btn-mini" data-ecpr="intubation">院内気管挿管<small>時刻・サイズ</small></button>
-          </div>
-        </div>
-        <div class="board-section">
-          <div class="board-h"><span>3 ECMO準備</span><span>CE / Nurse</span></div>
+          <div class="board-h"><span>2 ECMO準備</span><span>CE / Nurse</span></div>
           <div class="board-b ecpr-btn-grid">
             <button class="btn ghost btn-mini" data-ecpr="echo">エコー準備<small>穿刺/原因検索</small></button>
             <button class="btn ghost btn-mini" data-ecpr="prime">回路プライミング<small>JMS ECmoVA</small></button>
@@ -393,7 +383,7 @@ input[type=time]{position:relative}
           </div>
         </div>
         <div class="board-section">
-          <div class="board-h"><span>4 カニュレーション</span><span>Physician / CE</span></div>
+          <div class="board-h"><span>3 カニュレーション</span><span>Physician / CE</span></div>
           <div class="board-b ecpr-btn-grid">
             <button class="btn ghost btn-mini" id="btnCann">穿刺開始<small>穿刺時刻</small></button>
             <button class="btn ghost btn-mini" data-ecpr="wire_xp">ワイヤーX線確認<small>血管内留置</small></button>
@@ -404,7 +394,7 @@ input[type=time]{position:relative}
           </div>
         </div>
         <div class="board-section">
-          <div class="board-h"><span>5 確立後・原因治療</span><span>Post ECPR</span></div>
+          <div class="board-h"><span>4 確立後・原因治療</span><span>Post ECPR</span></div>
           <div class="board-b ecpr-btn-grid">
             <button class="btn ghost btn-mini" id="btnDpcCann">順行性下肢カニューレ<small>4-5Fr・下肢虚血予防</small></button>
             <button class="btn ghost btn-mini" data-ecpr="aline">右橈骨A-line<small>確立後</small></button>
@@ -1251,7 +1241,6 @@ class EcprCommanderV7{
     const done={
       call:!!e.ecmoCall,
       decision:!!e.pcps,
-      access:!!(t.piv||t.io),
       prepare:!!(t.echo||t.prime||t.act||t.heparin),
       cann:!!(e.cann||t.wire_xp||t.art_cann||t.ven_cann||t.connect),
       support:!!(e.pump||t.dpc||t.aline||t.right_spo2||t.ct_route||t.cag_route||t.ct_done||t.cag_done)
