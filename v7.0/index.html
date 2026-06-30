@@ -634,8 +634,8 @@ class EcprCommanderV7{
     document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",()=>this.close(b.dataset.close)));
     document.querySelectorAll("[data-rhythm]").forEach(b=>b.addEventListener("click",()=>this.setRhythm(b.dataset.rhythm)));
     ["cpa_age","cpa_sex","cpa_arrest_place","cpa_cause","cpa_start_type","cpa_rhythm","cpa_arrest_time","cpa_cpr_time","cpa_arrival_time","cpa_last_epi_time","cpa_memo","case_outcome"].forEach(id=>{
-      this.$(id).addEventListener("input",()=>this.updateCpaFromForm());
-      this.$(id).addEventListener("change",()=>this.updateCpaFromForm());
+      this.$(id).addEventListener("input",()=>this.updateCpaFromForm(false));
+      this.$(id).addEventListener("change",()=>this.updateCpaFromForm(true));
     });
     this.$("btnConfirmCpa").addEventListener("click",()=>this.confirmCpa());
     this.$("btnFormReset").addEventListener("click",()=>this.resetCase());
@@ -757,7 +757,7 @@ class EcprCommanderV7{
     if(group==="ecprCriteria")this.state.ecpr.criteria=values;
     this.save();this.render();
   }
-  updateCpaFromForm(){
+  updateCpaFromForm(cascade){
     const c=this.state.cpa;
     const oldArrest=c.arrestTime;
     const oldArrival=c.arrivalTime;
@@ -769,12 +769,16 @@ class EcprCommanderV7{
     c.lastEpiTime=this.$("cpa_last_epi_time").value;
     c.memo=this.$("cpa_memo").value;
     this.state.outcome=this.$("case_outcome").value;
-    if(c.arrestTime&&c.arrestTime!==oldArrest){
-      if(!c.cprTime){c.cprTime=c.arrestTime;this.$("cpa_cpr_time").value=c.arrestTime;}
-      if(!c.arrivalTime){c.arrivalTime=c.arrestTime;this.$("cpa_arrival_time").value=c.arrestTime;}
-    }
-    if(c.arrivalTime&&c.arrivalTime!==oldArrival){
-      if(!c.lastEpiTime){c.lastEpiTime=c.arrivalTime;this.$("cpa_last_epi_time").value=c.arrivalTime;}
+    // 確定(change)時のみ同期。空欄、または旧・心停止時刻のまま追従中の欄だけ確定値へ再同期し、
+    // 手動で別時刻を入れた欄は上書きしない。
+    if(cascade){
+      if(c.arrestTime&&c.arrestTime!==oldArrest){
+        if(!c.cprTime||c.cprTime===oldArrest){c.cprTime=c.arrestTime;this.$("cpa_cpr_time").value=c.arrestTime;}
+        if(!c.arrivalTime||c.arrivalTime===oldArrest){c.arrivalTime=c.arrestTime;this.$("cpa_arrival_time").value=c.arrestTime;}
+      }
+      if(c.arrivalTime&&c.arrivalTime!==oldArrival){
+        if(!c.lastEpiTime||c.lastEpiTime===oldArrival){c.lastEpiTime=c.arrivalTime;this.$("cpa_last_epi_time").value=c.arrivalTime;}
+      }
     }
     this.renderCpaSummary();
   }
