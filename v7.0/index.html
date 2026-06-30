@@ -678,7 +678,7 @@ class EcprCommanderV7{
     document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",()=>this.close(b.dataset.close)));
     document.querySelectorAll("[data-rhythm]").forEach(b=>b.addEventListener("click",()=>this.setRhythm(b.dataset.rhythm)));
     ["cpa_age","cpa_sex","cpa_arrest_place","cpa_cause","cpa_start_type","cpa_rhythm","cpa_arrest_time","cpa_cpr_time","cpa_arrival_time","cpa_last_epi_time","cpa_memo","case_outcome"].forEach(id=>{
-      this.$(id).addEventListener("input",()=>this.updateCpaFromForm(false));
+      this.$(id).addEventListener("input",()=>this.updateCpaFromForm(true));
       this.$(id).addEventListener("change",()=>this.updateCpaFromForm(true));
     });
     this.$("btnConfirmCpa").addEventListener("click",()=>this.confirmCpa());
@@ -885,7 +885,7 @@ class EcprCommanderV7{
     if(box)box.className="timer "+(active&&sec>=limit?"alert":active&&sec>=warnAt?"warn":"");
   }
   confirmCpa(){
-    this.updateCpaFromForm();
+    this.updateCpaFromForm(true);
     const c=this.state.cpa,l=this.state.live;
     this.state.confirmed=true;
     c.preEpiAtConfirm=Number(c.epiCount||0);
