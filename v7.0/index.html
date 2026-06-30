@@ -169,6 +169,9 @@ textarea{min-height:70px;resize:vertical}
   .side-log{top:calc(118px + var(--safe-top))}
 }
 input[type=time]{position:relative}
+/* 氏名選択チップ(役割分担) */
+.name-chips{margin:3px 0 8px;gap:6px}
+.name-chips .chip{padding:7px 11px;font-size:12px}
 /* 右レール: ログ/物品/報告書 タブ */
 .rail-seg{display:flex;gap:4px;align-items:center;margin-bottom:6px}
 .rail-tab{flex:1;min-width:0;padding:6px 4px;font-size:11px;font-weight:800;color:var(--muted);background:#f3f4f6;border:1px solid var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap}
@@ -565,14 +568,16 @@ input[type=time]{position:relative}
 <div id="roleModal" class="modal"><div class="modal-box">
   <div class="modal-h">役割分担<button data-close="roleModal">×</button></div>
   <div class="modal-b">
+    <label>リーダー</label>
+    <input id="role_leader" placeholder="氏名を選択または入力">
+    <div class="chips name-chips" data-name-target="role_leader"></div>
+    <label>穿刺担当</label>
+    <input id="role_cannulator" placeholder="氏名を選択または入力">
+    <div class="chips name-chips" data-name-target="role_cannulator"></div>
     <div class="grid2">
-      <div><label>リーダー</label><input id="role_leader" list="doctor_list" placeholder="選択または入力"></div>
-      <div><label>穿刺担当</label><input id="role_cannulator" list="doctor_list_cann" placeholder="選択または入力"></div>
       <div><label>CE/体外循環</label><input id="role_ce" placeholder="氏名"></div>
       <div><label>記録担当</label><input id="role_recorder" placeholder="氏名"></div>
     </div>
-    <datalist id="doctor_list"></datalist>
-    <datalist id="doctor_list_cann"></datalist>
     <button class="btn primary full" id="btnConfirmRole" style="margin-top:10px">役割を記録</button>
   </div>
 </div></div>
@@ -665,9 +670,18 @@ class EcprCommanderV7{
   save(){try{localStorage.setItem(this.key,JSON.stringify(this.state));}catch(e){this.toast("保存できません");}}
   $(id){return document.getElementById(id);}
   populateDoctorLists(){
-    const opts=EcprCommanderV7.DOCTORS.map(n=>`<option value="${this.escape(n)}"></option>`).join("");
-    ["doctor_list","doctor_list_cann"].forEach(id=>{const d=this.$(id);if(d)d.innerHTML=opts;});
+    document.querySelectorAll("[data-name-target]").forEach(wrap=>{
+      const target=wrap.dataset.nameTarget;
+      wrap.innerHTML=EcprCommanderV7.DOCTORS.map(n=>`<button type="button" class="chip" data-name="${this.escape(n)}">${this.escape(n)}</button>`).join("");
+      wrap.querySelectorAll("[data-name]").forEach(b=>b.addEventListener("click",()=>{
+        const inp=this.$(target);
+        inp.value=b.dataset.name;
+        inp.dispatchEvent(new Event("input",{bubbles:true}));
+        this.syncNameChips(wrap,b.dataset.name);
+      }));
+    });
   }
+  syncNameChips(wrap,val){wrap.querySelectorAll("[data-name]").forEach(b=>b.classList.toggle("on",b.dataset.name===val));}
   bind(){
     document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>this.switchView(b.dataset.view)));
     document.querySelectorAll(".chips[data-group] .chip").forEach(b=>b.addEventListener("click",()=>this.toggleChip(b)));
@@ -1131,6 +1145,7 @@ class EcprCommanderV7{
     const t=this.state.ecpr.team||{};
     this.$("role_leader").value=t.leader||"";this.$("role_cannulator").value=t.cannulator||"";
     this.$("role_ce").value=t.ce||"";this.$("role_recorder").value=t.recorder||"";
+    document.querySelectorAll("[data-name-target]").forEach(wrap=>this.syncNameChips(wrap,this.$(wrap.dataset.nameTarget).value));
   }
   confirmRole(){
     const t=this.state.ecpr.team;
