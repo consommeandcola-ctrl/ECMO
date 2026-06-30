@@ -617,7 +617,7 @@ class EcprCommanderV7{
         const v6=localStorage.getItem("ecpr_commander_v6");
         if(v6){const merged=this.mergeState(d,JSON.parse(v6));try{localStorage.setItem(this.key,JSON.stringify(merged));}catch(e){}return merged;}
         const v5=localStorage.getItem("ecpr_commander_v5");
-        if(v5)return this.mergeState(d,JSON.parse(v5));
+        if(v5){const merged=this.mergeState(d,JSON.parse(v5));try{localStorage.setItem(this.key,JSON.stringify(merged));}catch(e){}return merged;}
       }
       return this.mergeState(d,JSON.parse(raw||"{}"));
     }catch(e){return this.defaultState();}
@@ -628,7 +628,6 @@ class EcprCommanderV7{
     document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>this.switchView(b.dataset.view)));
     document.querySelectorAll(".chips[data-group] .chip").forEach(b=>b.addEventListener("click",()=>this.toggleChip(b)));
     document.querySelectorAll("[data-quick]").forEach(b=>b.addEventListener("click",()=>{this.clickFx(b);this.log("処置",b.dataset.quick);}));
-    document.querySelectorAll("[data-med='amio']").forEach(b=>b.addEventListener("click",()=>this.recordAmio(b)));
     document.querySelectorAll("[data-step-count]").forEach(b=>b.addEventListener("click",()=>this.stepPrehospitalCount(b.dataset.stepCount,Number(b.dataset.delta),b)));
     document.querySelectorAll("[data-ecpr]").forEach(b=>b.addEventListener("click",()=>this.handleEcprButton(b.dataset.ecpr,b.childNodes[0].textContent.trim())));
     document.querySelectorAll("[data-open]").forEach(b=>b.addEventListener("click",()=>this.open("airwayModal")));
@@ -788,7 +787,7 @@ class EcprCommanderV7{
     this.renderCpaSummary();
     this.save();
   }
-  timeToTodayMs(t){if(!t)return null;const [h,m]=t.split(":").map(Number);const d=new Date();d.setHours(h,m,0,0);return d.getTime();}
+  timeToTodayMs(t){if(!t)return null;const [h,m]=t.split(":").map(Number);const d=new Date();d.setHours(h,m,0,0);let ms=d.getTime();if(ms>Date.now()+60000)ms-=86400000;return ms;}
   nowTime(){const d=new Date();return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");}
   fmtMs(ms){if(!ms)return "--:--";const s=Math.max(0,Math.floor((Date.now()-ms)/1000));return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");}
   fmtSec(sec){sec=Math.max(0,Math.floor(sec));return String(Math.floor(sec/60)).padStart(2,"0")+":"+String(sec%60).padStart(2,"0");}
@@ -857,7 +856,7 @@ class EcprCommanderV7{
       l.episodes.push({episode:l.episode||1,arrestMs:l.arrestMs,roscMs:l.roscMs,roscTime:l.roscTime,cprStartMs:l.cprStartMs,rhythm:"ROSC",flowSec:fb.total,noFlowSec:fb.noFlow,lowFlowSec:fb.lowFlow,roscBp:l.roscBp,roscPulse:l.roscPulse});
     }
     l.episode=(l.episode||1)+1;
-    l.arrestMs=now;l.cprStartMs=now;l.flowCprStartMs=now;l.roscMs=null;l.roscTime="";l.roscBp="";l.roscPulse="";l.roscNote="";l.currentRhythm="";
+    l.arrestMs=now;l.cprStartMs=now;l.flowCprStartMs=now;l.lastEpiMs=null;l.roscMs=null;l.roscTime="";l.roscBp="";l.roscPulse="";l.roscNote="";l.currentRhythm="";
     this.log("CPA",this.episodeLabel(l.episode)+(reason||"再心停止"));
   }
   startCpr(){this.clickFx(this.$("btnCpr"));const l=this.state.live;if(l.roscMs)this.startNewArrest("再心停止 - CPR再開");else{if(!l.cprStartMs)l.cprStartMs=Date.now();if(!l.flowCprStartMs)l.flowCprStartMs=l.cprStartMs;}this.log("CPR","CPR開始/継続");this.save();this.render();}
@@ -867,7 +866,6 @@ class EcprCommanderV7{
     if(r==="ROSC"){
       l.currentRhythm=r;
       this.close("rhythmModal");
-      this.prepareRoscModal();
       this.open("roscModal");
       return;
     }
@@ -882,7 +880,6 @@ class EcprCommanderV7{
   recordRosc(){
     if(this.state.live.roscMs)return;
     this.clickFx(this.$("btnRosc"));
-    this.prepareRoscModal();
     this.open("roscModal");
   }
   prepareRoscModal(){

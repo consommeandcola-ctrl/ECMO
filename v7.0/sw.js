@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ecmo-cpa-v7-v5';
+const CACHE_NAME = 'ecmo-cpa-v7-v6';
 const urlsToCache = [
   './',
   './index.html',
@@ -11,13 +11,23 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => cache.addAll(urlsToCache))
+      .then(() => self.skipWaiting())
   );
 });
 
+// ネットワーク優先：オンライン時は常に最新を取得し、取得成功分でキャッシュを更新。
+// オフライン時のみキャッシュにフォールバック（臨床用途のため鮮度を優先）。
 self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  if (req.method !== 'GET') return;
   event.respondWith(
-    caches.match(event.request)
-      .then((response) => response || fetch(event.request))
+    fetch(req)
+      .then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+        return res;
+      })
+      .catch(() => caches.match(req))
   );
 });
 
@@ -32,6 +42,6 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
