@@ -191,14 +191,28 @@ input[type=time]{position:relative}
 /* スワイプ時のスライドフィードバック */
 .view.active{animation:view-slide .22s ease}
 @keyframes view-slide{0%{opacity:.55;transform:translateX(var(--slide-from,0))}100%{opacity:1;transform:translateX(0)}}
-/* iPad横: 主要ボタン大型化・操作盤タップ領域拡大 */
+/* iPad横: ライブ主要ボタンは大型化 */
 @media(min-width:768px){
   #view-live .action-grid .btn.big{min-height:96px;font-size:21px}
-  #view-ecpr .ecpr-btn-grid{grid-template-columns:repeat(2,1fr);gap:7px}
-  #view-ecpr .btn-mini{min-height:56px;font-size:13px;border-radius:10px;padding:8px 10px}
-  #view-ecpr .btn-mini small{font-size:10px}
-  #view-ecpr .lane{min-height:48px}
-  #view-ecpr .lane .n{font-size:12px}
+}
+/* iPad横: ECPRはスクロール不要なよう高密度に圧縮 */
+@media(min-width:768px) and (orientation:landscape){
+  #view-ecpr .card{margin-bottom:4px}
+  #view-ecpr .card-h{padding:4px 9px;font-size:11px}
+  #view-ecpr .card-b{padding:5px 7px}
+  #view-ecpr .hint{display:none}
+  #view-ecpr .ecpr-btn-grid{grid-template-columns:repeat(4,1fr);gap:4px}
+  #view-ecpr .btn-mini{min-height:33px;font-size:11px;padding:3px 7px;border-radius:7px}
+  #view-ecpr .btn-mini small{font-size:8.5px}
+  #view-ecpr .board-section{margin-bottom:4px}
+  #view-ecpr .board-h{padding:3px 8px;font-size:10px}
+  #view-ecpr .board-b{padding:4px;gap:4px}
+  #view-ecpr .lane-grid{grid-template-columns:repeat(6,1fr);gap:4px;margin-bottom:4px}
+  #view-ecpr .lane{min-height:33px;padding:3px}
+  #view-ecpr .lane .n{font-size:10px}
+  #view-ecpr label{margin:2px 0 2px}
+  #view-ecpr .chips{gap:3px}
+  #view-ecpr .chip{padding:3px 7px;font-size:10px}
 }
 .chip.pressed[data-quick]{animation:quick-flash .8s ease}
 @keyframes quick-flash{0%{background:var(--soft-green);border-color:var(--ok);color:var(--ok);transform:scale(.96)}15%{transform:scale(1.02)}100%{background:#fff;border-color:var(--line);color:#374151;transform:scale(1)}}
