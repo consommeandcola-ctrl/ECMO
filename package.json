@@ -1,0 +1,18 @@
+{
+  "name": "ecmo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "node node_modules/@playwright/test/cli.js test tests/v7.spec.js -c playwright.v7.config.js",
+    "test:report": "node node_modules/@playwright/test/cli.js test tests/v7.spec.js -c playwright.v7.config.js --reporter=list",
+    "test:all": "node node_modules/@playwright/test/cli.js test tests/v7.spec.js -c playwright.v7.config.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.60.0"
+  }
+}

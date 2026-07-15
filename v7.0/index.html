@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- 2026-06-27 | v7.0.0 | iPad最適化・768px2列・Legacy制約撤廃・v6マイグレーション -->
+<!-- 2026-07-15 | v7.2.0 | 事後入力・実施時刻/入力時刻分離・連続入力 -->
 <html lang="ja">
 <head>
 <meta charset="utf-8">
@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#f2f2f7">
 <link rel="manifest" href="manifest.json">
-<title>ECPR Commander v7.0</title>
+<title>ECPR Commander v7.2</title>
 <style>
 :root{
   --ink:#111827;--muted:#6b7280;--bg:#f2f2f7;--card:#fff;--line:#d1d5db;
@@ -82,6 +82,7 @@ textarea{min-height:70px;resize:vertical}
 .stepper .num.on{background:#eff6ff;border-color:var(--brand);color:var(--brand)}
 .btn.primary{background:var(--brand);color:#fff}.btn.danger{background:var(--danger);color:#fff}.btn.ok{background:var(--ok);color:#fff}.btn.warn{background:#f59e0b;color:#111827}.btn.purple{background:var(--purple);color:#fff}.btn.ghost{background:#fff;border:1px solid var(--line)}
 .btn.done{background:var(--soft-green)!important;border:1px solid var(--ok)!important;color:var(--ok)!important}
+.btn.problem{background:var(--soft-yellow)!important;border:1px solid var(--warn)!important;color:#92400e!important}
 .btn.full{width:100%}.btn.big{min-height:76px;font-size:18px}.btn small{display:block;font-size:11px;font-weight:700;opacity:.85;margin-top:3px}
 .action-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.action-grid.single{grid-template-columns:1fr}
 .action-grid.three{grid-template-columns:repeat(3,1fr)}
@@ -125,6 +126,7 @@ textarea{min-height:70px;resize:vertical}
 .summary-box{background:#111827;color:#fff;border-radius:12px;padding:12px;font-size:12px;line-height:1.7;white-space:pre-wrap}
 .fixed-summary{border-left:5px solid var(--brand);background:#eff6ff;padding:10px 11px;border-radius:10px;font-size:12px;line-height:1.65;margin-bottom:10px}
 .log{font-family:Consolas,"SF Mono",monospace;font-size:12px;line-height:1.45}.log-row{display:flex;gap:8px;border-bottom:1px dashed var(--line);padding:6px 0}.log-time{color:var(--brand);font-weight:900;min-width:42px}.log-cat{display:none}.log-text{flex:1}
+.entry-badge{display:inline-block;margin-left:5px;padding:1px 5px;border-radius:999px;background:var(--soft-yellow);border:1px solid #f59e0b;color:#92400e;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",Meiryo,sans-serif;font-size:9px;font-weight:900;vertical-align:1px}
 .side-log{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:8px;display:flex;flex-direction:column;gap:7px}
 .side-log .side-h{font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:space-between}
 .side-log .log{flex:1;overflow:auto;border-top:1px solid var(--line);padding-top:4px}
@@ -224,7 +226,7 @@ input[type=time]{position:relative}
 <body>
 <header>
   <div class="top-row">
-    <div class="title">ECPR Commander<small>v7.0 CPA/ECPR Record</small></div>
+    <div class="title">ECPR Commander<small>v7.2 CPA/ECPR Record</small></div>
     <span id="confirmedPill" class="status-pill">CPA未確定</span>
     <button id="kitBadge" class="status-pill" style="margin-left:6px;cursor:pointer;" title="物品チェックへ">物品 0/0</button>
     <button id="btnFormReset" class="status-pill" style="background:var(--muted);color:#fff;border:none;margin-left:6px;cursor:pointer;">リセット</button>
@@ -386,9 +388,10 @@ input[type=time]{position:relative}
           <div class="board-h"><span>3 カニュレーション</span><span>Physician / CE</span></div>
           <div class="board-b ecpr-btn-grid">
             <button class="btn ghost btn-mini" id="btnCann">穿刺開始<small>穿刺時刻</small></button>
-            <button class="btn ghost btn-mini" data-ecpr="wire_xp">ワイヤーX線確認<small>血管内留置</small></button>
+            <button class="btn ghost btn-mini" id="btnWire">ワイヤー操作<small id="wireStatus">挿入・X線先端確認</small></button>
             <button class="btn ghost btn-mini" id="btnArtCann">送血カニューレ<small>FA</small></button>
             <button class="btn ghost btn-mini" id="btnVenCann">脱血カニューレ<small>FV</small></button>
+            <button class="btn warn btn-mini" id="btnCannProblem">トラブル・再試行<small>逸脱/位置異常/再穿刺</small></button>
             <button class="btn ghost btn-mini" data-ecpr="connect">送脱血接続確認<small>エア抜き含む</small></button>
             <button class="btn ok btn-mini" id="btnPump">ポンプオン<small>Flow/RPM記録</small></button>
           </div>
@@ -421,6 +424,7 @@ input[type=time]{position:relative}
     <button class="btn ghost" id="btnReset" style="min-height:28px;padding:4px 8px;font-size:11px;flex:0 0 auto">新規</button>
   </div>
   <div class="rail-panel active" data-rail-panel="log">
+    <button class="btn primary full" id="btnRetroEntry" style="min-height:34px;padding:7px 8px;font-size:12px">事後入力<small style="display:inline;margin-left:5px">実施時刻を指定</small></button>
     <div id="log" class="log"></div>
   </div>
   <div class="rail-panel" data-rail-panel="kit">
@@ -544,6 +548,106 @@ input[type=time]{position:relative}
   </div>
 </div></div>
 
+<div id="wireModal" class="modal"><div class="modal-box">
+  <div class="modal-h">ガイドワイヤー操作<button data-close="wireModal">×</button></div>
+  <div class="modal-b">
+    <label>対象</label>
+    <select id="wire_target">
+      <option value="art">送血側（FA）</option>
+      <option value="ven">脱血側（FV）</option>
+    </select>
+    <label>記録時刻</label><input type="time" id="wire_time">
+    <div class="action-grid" style="margin-top:10px">
+      <button class="btn primary" id="btnRecordWireInserted">ワイヤー挿入を記録</button>
+      <button class="btn ok" id="btnRecordWireConfirmed">X線先端確認を記録</button>
+    </div>
+  </div>
+</div></div>
+
+<div id="cannProblemModal" class="modal"><div class="modal-box">
+  <div class="modal-h">穿刺トラブル・再試行<button data-close="cannProblemModal">×</button></div>
+  <div class="modal-b">
+    <label>対象</label>
+    <select id="cann_problem_target">
+      <option value="art">送血側（FA）</option>
+      <option value="ven">脱血側（FV）</option>
+    </select>
+    <div class="grid2">
+      <div><label>発生工程</label><select id="cann_problem_phase"><option value="puncture">血管穿刺</option><option value="wire">ワイヤー挿入</option><option value="xray">X線確認後</option><option value="dilation" selected>ダイレーション中</option><option value="cannula">カニューレ挿入中</option><option value="other">その他</option></select></div>
+      <div><label>事象</label><select id="cann_problem_kind"><option value="wire_displacement" selected>ワイヤー抜去・逸脱</option><option value="wire_malposition">ワイヤー位置異常</option><option value="puncture_failure">穿刺不成功</option><option value="dilation_stopped">ダイレーション中止</option><option value="other">その他</option></select></div>
+    </div>
+    <label>発生時刻</label><input type="time" id="cann_problem_time">
+    <label>補足（任意）</label><input id="cann_problem_note" placeholder="状況、部位変更など">
+    <div class="hint" style="margin-top:10px">現在の試行を中断として保存し、同じ側の再穿刺を新しい試行として開始します。過去の記録は削除しません。</div>
+    <button class="btn warn full" id="btnConfirmCannProblem">トラブル記録・再穿刺開始</button>
+  </div>
+</div></div>
+
+<div id="retroEntryModal" class="modal"><div class="modal-box">
+  <div class="modal-h">事後入力<button data-close="retroEntryModal">×</button></div>
+  <div class="modal-b">
+    <label>処置・イベント</label>
+    <select id="retro_kind">
+      <optgroup label="蘇生">
+        <option value="cpr_start">CPR開始・継続</option>
+        <option value="rhythm_vf">リズム確認：VF</option>
+        <option value="rhythm_pvt">リズム確認：無脈性VT</option>
+        <option value="rhythm_pea">リズム確認：PEA</option>
+        <option value="rhythm_asystole">リズム確認：Asystole</option>
+        <option value="shock">除細動</option>
+        <option value="adrenaline">Adrenaline 1mg</option>
+        <option value="amiodarone_300">Amiodarone 300mg</option>
+        <option value="amiodarone_150">Amiodarone 150mg</option>
+        <option value="rosc">ROSC</option>
+        <option value="intubation">気管挿管</option>
+      </optgroup>
+      <optgroup label="ECPR準備・確立">
+        <option value="ecmo_call">ECMOコール</option>
+        <option value="pcps">PCPS宣言</option>
+        <option value="echo">エコー準備</option>
+        <option value="prime">回路プライミング</option>
+        <option value="act">ACT測定</option>
+        <option value="heparin">ヘパリン投与</option>
+        <option value="connect">送脱血接続・エア抜き確認</option>
+        <option value="pump">ECMOポンプオン</option>
+        <option value="dpc">順行性下肢カニューレ留置</option>
+      </optgroup>
+      <optgroup label="穿刺・ワイヤー">
+        <option value="cannulation_start">穿刺開始</option>
+        <option value="wire_inserted">ガイドワイヤー挿入</option>
+        <option value="wire_confirmed">ガイドワイヤーX線先端確認</option>
+        <option value="wire_displacement">ワイヤー抜去・逸脱</option>
+        <option value="wire_malposition">ワイヤー位置異常</option>
+        <option value="puncture_failure">穿刺不成功</option>
+        <option value="dilation_stopped">ダイレーション中止</option>
+        <option value="repuncture_started">再穿刺開始</option>
+        <option value="art_cannula_placed">送血カニューレ留置</option>
+        <option value="ven_cannula_placed">脱血カニューレ留置</option>
+      </optgroup>
+      <optgroup label="その他">
+        <option value="custom">自由記載</option>
+      </optgroup>
+    </select>
+    <div class="grid2">
+      <div><label>実施日</label><input type="date" id="retro_date"></div>
+      <div><label>実施時刻</label><input type="time" id="retro_time"></div>
+    </div>
+    <div id="retro_cann_fields" hidden>
+      <div class="grid2">
+        <div><label>対象</label><select id="retro_target"><option value="art">送血側（FA）</option><option value="ven">脱血側（FV）</option></select></div>
+        <div id="retro_attempt_block"><label>試行</label><select id="retro_attempt"></select></div>
+      </div>
+      <div id="retro_phase_block" hidden><label>発生工程</label><select id="retro_phase"><option value="puncture">血管穿刺中</option><option value="wire">ワイヤー挿入中</option><option value="xray">X線確認後</option><option value="dilation" selected>ダイレーション中</option><option value="cannula">カニューレ挿入中</option><option value="other">その他</option></select></div>
+    </div>
+    <label>補足（任意）</label><input id="retro_note" placeholder="投与量、部位、サイズ、状況など">
+    <div class="hint" style="margin-top:10px">タイムラインは実施時刻順に並びます。入力した時刻も事後入力履歴として保存されます。</div>
+    <div class="action-grid" style="margin-top:10px">
+      <button class="btn ghost" id="btnSaveRetroContinue">保存して続ける</button>
+      <button class="btn primary" id="btnSaveRetro">保存して閉じる</button>
+    </div>
+  </div>
+</div></div>
+
 <div id="heparinModal" class="modal"><div class="modal-box">
   <div class="modal-h">ヘパリン投与<button data-close="heparinModal">×</button></div>
   <div class="modal-b">
@@ -614,6 +718,40 @@ input[type=time]{position:relative}
 <script>
 "use strict";
 class EcprCommanderV7{
+  static SCHEMA_VERSION=9;
+  static RETRO_EVENTS={
+    cpr_start:{cat:"CPR",text:"CPR開始/継続"},
+    rhythm_vf:{cat:"波形",text:"リズム確認: VF",rhythm:"VF"},
+    rhythm_pvt:{cat:"波形",text:"リズム確認: 無脈性VT",rhythm:"無脈性VT"},
+    rhythm_pea:{cat:"波形",text:"リズム確認: PEA",rhythm:"PEA"},
+    rhythm_asystole:{cat:"波形",text:"リズム確認: Asystole",rhythm:"Asystole"},
+    shock:{cat:"除細動",text:"除細動",action:"shock"},
+    adrenaline:{cat:"薬剤",text:"Adrenaline 1mg",action:"adrenaline"},
+    amiodarone_300:{cat:"薬剤",text:"Amiodarone 300mg",action:"amiodarone"},
+    amiodarone_150:{cat:"薬剤",text:"Amiodarone 150mg",action:"amiodarone"},
+    rosc:{cat:"転帰",text:"ROSC 心拍再開",action:"rosc"},
+    intubation:{cat:"気道",text:"気管挿管",action:"intubation"},
+    ecmo_call:{cat:"ECPR",text:"ECMOコール",ecprField:"ecmoCall"},
+    pcps:{cat:"ECPR",text:"PCPS宣言",ecprField:"pcps"},
+    echo:{cat:"ECPR",text:"エコー準備",task:"echo"},
+    prime:{cat:"ECPR",text:"回路プライミング",task:"prime"},
+    act:{cat:"ECPR",text:"ACT測定",task:"act"},
+    heparin:{cat:"ECPR",text:"ヘパリン投与",task:"heparin"},
+    connect:{cat:"ECPR",text:"送血/脱血接続・エア抜き確認",task:"connect"},
+    pump:{cat:"ECPR",text:"ECMOポンプオン",ecprField:"pump"},
+    dpc:{cat:"ECPR",text:"順行性下肢カニューレ留置",task:"dpc"},
+    cannulation_start:{cat:"ECPR",text:"穿刺開始",cann:true,action:"cannulation_start"},
+    wire_inserted:{cat:"ECPR",text:"ガイドワイヤー挿入",cann:true,action:"wire_inserted"},
+    wire_confirmed:{cat:"ECPR",text:"ガイドワイヤーX線先端確認",cann:true,action:"wire_confirmed"},
+    wire_displacement:{cat:"ECPR",text:"ワイヤー抜去・逸脱",cann:true,problem:true,problemKind:"wire_displacement"},
+    wire_malposition:{cat:"ECPR",text:"ワイヤー位置異常",cann:true,problem:true,problemKind:"wire_malposition"},
+    puncture_failure:{cat:"ECPR",text:"穿刺不成功",cann:true,problem:true,problemKind:"puncture_failure"},
+    dilation_stopped:{cat:"ECPR",text:"ダイレーション中止",cann:true,problem:true,problemKind:"dilation_stopped"},
+    repuncture_started:{cat:"ECPR",text:"再穿刺開始",cann:true,action:"repuncture_started"},
+    art_cannula_placed:{cat:"ECPR",text:"送血カニューレ留置",cann:true,action:"cannula_placed",target:"art"},
+    ven_cannula_placed:{cat:"ECPR",text:"脱血カニューレ留置",cann:true,action:"cannula_placed",target:"ven"},
+    custom:{cat:"処置",text:"",action:"custom"}
+  };
   static KIT_CATEGORIES=[
     {id:"pcps_kit",name:"PCPSキット",items:["消毒トレー 2個","50mLカテーテルチップシリンジ 2本","10mLシリンジ 4本","剪刀","有鈎鑷子","持針器","外科用強角針","シルク2号","ガーゼ","布鉗子","PCPSドレープ","コードホルダー","防水ドレープ"]},
     {id:"cannula",name:"カニューレ",items:["送血カニューレ 17/19/21Fr","脱血カニューレ 23/25/27/29Fr","ガイドワイヤー","ダイレーター","順行性下肢シース 4-5Fr"]},
@@ -639,22 +777,34 @@ class EcprCommanderV7{
     setInterval(()=>this.renderTimers(),1000);
   }
   defaultState(){
-    return {confirmed:false,outcome:"蘇生継続中",cpa:{age:"",sex:"",arrestPlace:"",cause:"",startType:"プレホスCPA継続",rhythm:"",arrestTime:"",cprTime:"",arrivalTime:"",lastEpiTime:"",witness:[],prehospital:[],epiCount:0,shockCount:0,preEpiAtConfirm:0,preShockAtConfirm:0,tube:"",tubeTime:"",tubeSize:"7.5",tubeDepth:"22",memo:"",handover:""},live:{episode:1,cprStartMs:null,flowCprStartMs:null,arrestMs:null,lastEpiMs:null,roscMs:null,roscTime:"",roscBp:"",roscPulse:"",roscNote:"",currentRhythm:"",shockCount:0,epiCount:0,amioCount:0,episodes:[]},ecpr:{criteria:[],ecmoCall:null,pcps:null,cann:null,pump:null,pumpFlow:"",pumpFiO2:"",pumpRpm:"",heparinUnit:"",team:{leader:"",cannulator:"",ce:"",recorder:""},cprQuality:{etco2:"",depth:"",note:""},routes:{},tasks:{},cannula:{art:"",ven:"",dpc:"",weightRange:"",artActual:"",venActual:"",dpcActual:"",artCm:"",venCm:"",dpcCm:"",artSite:"",venSite:""}},kits:{checked:{},open:{}},events:[]};
+    return {schemaVersion:EcprCommanderV7.SCHEMA_VERSION,eventSeq:0,confirmed:false,outcome:"蘇生継続中",cpa:{age:"",sex:"",arrestPlace:"",cause:"",startType:"プレホスCPA継続",rhythm:"",arrestTime:"",cprTime:"",arrivalTime:"",lastEpiTime:"",witness:[],prehospital:[],epiCount:0,shockCount:0,preEpiAtConfirm:0,preShockAtConfirm:0,tube:"",tubeTime:"",tubeSize:"7.5",tubeDepth:"22",memo:"",handover:""},live:{episode:1,cprStartMs:null,flowCprStartMs:null,arrestMs:null,lastEpiMs:null,roscMs:null,roscTime:"",roscBp:"",roscPulse:"",roscNote:"",currentRhythm:"",shockCount:0,epiCount:0,amioCount:0,episodes:[]},ecpr:{criteria:[],ecmoCall:null,pcps:null,cann:null,pump:null,pumpFlow:"",pumpFiO2:"",pumpRpm:"",heparinUnit:"",team:{leader:"",cannulator:"",ce:"",recorder:""},cprQuality:{etco2:"",depth:"",note:""},routes:{},tasks:{},cannulationAttempts:[],cannula:{art:"",ven:"",dpc:"",weightRange:"",artActual:"",venActual:"",dpcActual:"",artCm:"",venCm:"",dpcCm:"",artSite:"",venSite:""}},kits:{checked:{},open:{}},events:[]};
   }
   mergeState(d,p){
     const ecprD=d.ecpr,ecprP=p.ecpr||{};
-    return {...d,...p,outcome:p.outcome||d.outcome,cpa:{...d.cpa,...(p.cpa||{})},live:{...d.live,...(p.live||{}),episodes:[...(p.live&&p.live.episodes)||[]]},ecpr:{...ecprD,...ecprP,team:{...ecprD.team,...(ecprP.team||{})},cprQuality:{...ecprD.cprQuality,...(ecprP.cprQuality||{})},routes:{...ecprD.routes,...(ecprP.routes||{})},tasks:{...ecprD.tasks,...(ecprP.tasks||{})},cannula:{...ecprD.cannula,...(ecprP.cannula||{})}},kits:{...d.kits,...(p.kits||{}),checked:{...d.kits.checked,...((p.kits&&p.kits.checked)||{})},open:{...d.kits.open,...((p.kits&&p.kits.open)||{})}}};
+    return {...d,...p,outcome:p.outcome||d.outcome,cpa:{...d.cpa,...(p.cpa||{})},live:{...d.live,...(p.live||{}),episodes:[...(p.live&&p.live.episodes)||[]]},ecpr:{...ecprD,...ecprP,team:{...ecprD.team,...(ecprP.team||{})},cprQuality:{...ecprD.cprQuality,...(ecprP.cprQuality||{})},routes:{...ecprD.routes,...(ecprP.routes||{})},tasks:{...ecprD.tasks,...(ecprP.tasks||{})},cannulationAttempts:[...(ecprP.cannulationAttempts||[])],cannula:{...ecprD.cannula,...(ecprP.cannula||{})}},kits:{...d.kits,...(p.kits||{}),checked:{...d.kits.checked,...((p.kits&&p.kits.checked)||{})},open:{...d.kits.open,...((p.kits&&p.kits.open)||{})}},events:[...(p.events||[])]};
+  }
+  migrateState(state){
+    state.schemaVersion=EcprCommanderV7.SCHEMA_VERSION;
+    state.ecpr.cannulationAttempts=Array.isArray(state.ecpr.cannulationAttempts)?state.ecpr.cannulationAttempts:[];
+    let seq=Number(state.eventSeq||0);
+    state.events=(Array.isArray(state.events)?state.events:[]).map((e,i)=>{
+      const eventSeq=Number(e.seq||0)||++seq;
+      const atMs=Number.isFinite(e.occurredAtMs)?e.occurredAtMs:Number.isFinite(e.atMs)?e.atMs:null;
+      return {...e,id:e.id||"legacy-"+eventSeq,seq:eventSeq,atMs,occurredAtMs:atMs,recordedAtMs:Number.isFinite(e.recordedAtMs)?e.recordedAtMs:null,entryMode:e.entryMode||"legacy"};
+    });
+    state.eventSeq=Math.max(seq,...state.events.map(e=>Number(e.seq||0)),0);
+    return state;
   }
   load(){
     try{
       const d=this.defaultState(),raw=localStorage.getItem(this.key);
       if(!raw){
         const v6=localStorage.getItem("ecpr_commander_v6");
-        if(v6){const merged=this.mergeState(d,JSON.parse(v6));try{localStorage.setItem(this.key,JSON.stringify(merged));}catch(e){}return merged;}
+        if(v6){const merged=this.migrateState(this.mergeState(d,JSON.parse(v6)));try{localStorage.setItem(this.key,JSON.stringify(merged));}catch(e){}return merged;}
         const v5=localStorage.getItem("ecpr_commander_v5");
-        if(v5){const merged=this.mergeState(d,JSON.parse(v5));try{localStorage.setItem(this.key,JSON.stringify(merged));}catch(e){}return merged;}
+        if(v5){const merged=this.migrateState(this.mergeState(d,JSON.parse(v5)));try{localStorage.setItem(this.key,JSON.stringify(merged));}catch(e){}return merged;}
       }
-      return this.mergeState(d,JSON.parse(raw||"{}"));
+      return this.migrateState(this.mergeState(d,JSON.parse(raw||"{}")));
     }catch(e){return this.defaultState();}
   }
   save(){try{localStorage.setItem(this.key,JSON.stringify(this.state));}catch(e){this.toast("保存できません");}}
@@ -699,6 +849,16 @@ class EcprCommanderV7{
     this.$("btnEcmoCall").addEventListener("click",()=>this.markEcpr("ecmoCall","ECMOコール"));
     this.$("btnPcps").addEventListener("click",()=>this.markEcpr("pcps","PCPS宣言"));
     this.$("btnCann").addEventListener("click",()=>this.markEcpr("cann","カニュレーション開始"));
+    this.$("btnWire").addEventListener("click",()=>this.open("wireModal"));
+    this.$("btnCannProblem").addEventListener("click",()=>this.open("cannProblemModal"));
+    this.$("btnRecordWireInserted").addEventListener("click",()=>this.recordWireStep("inserted"));
+    this.$("btnRecordWireConfirmed").addEventListener("click",()=>this.recordWireStep("confirmed"));
+    this.$("btnConfirmCannProblem").addEventListener("click",()=>this.confirmCannulationProblem());
+    this.$("btnRetroEntry").addEventListener("click",()=>this.open("retroEntryModal"));
+    this.$("retro_kind").addEventListener("change",()=>this.updateRetroFields());
+    this.$("retro_target").addEventListener("change",()=>this.populateRetroAttempts());
+    this.$("btnSaveRetro").addEventListener("click",()=>this.recordRetrospective(false));
+    this.$("btnSaveRetroContinue").addEventListener("click",()=>this.recordRetrospective(true));
     this.$("btnPump").addEventListener("click",()=>this.openPumpModal());
     this.$("btnConfirmPump").addEventListener("click",()=>this.confirmPump());
     this.$("btnConfirmHeparin").addEventListener("click",()=>this.confirmHeparin());
@@ -1039,19 +1199,209 @@ class EcprCommanderV7{
     this.updateCannulaSuggest(range);
     this.save();
   }
+  cannTargetLabel(target){return target==="art"?"送血側":"脱血側";}
+  cannPhaseLabel(phase){return {puncture:"血管穿刺中",wire:"ワイヤー挿入中",xray:"X線確認後",dilation:"ダイレーション中",cannula:"カニューレ挿入中",other:"その他工程"}[phase]||phase;}
+  cannProblemLabel(kind){return {wire_displacement:"ワイヤー抜去・逸脱",wire_malposition:"ワイヤー位置異常",puncture_failure:"穿刺不成功",dilation_stopped:"ダイレーション中止",other:"その他トラブル"}[kind]||kind;}
+  cannulationAttempts(target){
+    const arr=this.state.ecpr.cannulationAttempts||[];
+    return target?arr.filter(a=>a.target===target):arr;
+  }
+  latestCannulationAttempt(target){
+    const arr=this.cannulationAttempts(target);
+    return arr.length?arr[arr.length-1]:null;
+  }
+  createCannulationAttempt(target,t,atMs,retryOf){
+    const arr=this.state.ecpr.cannulationAttempts=this.state.ecpr.cannulationAttempts||[];
+    const attemptNo=this.cannulationAttempts(target).length+1;
+    const attempt={id:target+"-"+attemptNo+"-"+(atMs||Date.now()),target,attemptNo,startedAt:t,startedAtMs:atMs||Date.now(),wireInsertedAt:null,wireInsertedAtMs:null,wireConfirmedAt:null,wireConfirmedAtMs:null,completedAt:null,completedAtMs:null,status:"active",retryOf:retryOf||null,problem:null};
+    arr.push(attempt);
+    return attempt;
+  }
+  ensureCannulationAttempt(target,t,atMs){
+    const latest=this.latestCannulationAttempt(target);
+    if(latest&&latest.status==="active")return latest;
+    const startT=this.state.ecpr.cann||t||this.nowTime();
+    const startMs=this.state.ecpr.cann?this.timeToTodayMs(this.state.ecpr.cann):(atMs||Date.now());
+    return this.createCannulationAttempt(target,startT,startMs,null);
+  }
+  prepareWireModal(){
+    this.$("wire_time").value=this.nowTime();
+    const art=this.latestCannulationAttempt("art"),ven=this.latestCannulationAttempt("ven");
+    if(art&&!ven)this.$("wire_target").value="art";
+    else if(ven&&!art)this.$("wire_target").value="ven";
+  }
+  recordWireStep(step){
+    const target=this.$("wire_target").value,t=this.$("wire_time").value||this.nowTime(),atMs=this.timeToTodayMs(t)||Date.now();
+    const attempt=this.ensureCannulationAttempt(target,t,atMs),label=this.cannTargetLabel(target)+" 第"+attempt.attemptNo+"試行";
+    if(step==="inserted"){
+      attempt.wireInsertedAt=t;attempt.wireInsertedAtMs=atMs;
+      this.log("ECPR",label+" ガイドワイヤー挿入",t,{kind:"wire_inserted",target,attemptNo:attempt.attemptNo,atMs});
+    }else{
+      attempt.wireConfirmedAt=t;attempt.wireConfirmedAtMs=atMs;
+      this.log("ECPR",label+" ガイドワイヤーX線先端確認",t,{kind:"wire_confirmed",target,attemptNo:attempt.attemptNo,atMs});
+    }
+    this.close("wireModal");this.save();this.render();
+  }
+  prepareCannProblemModal(){
+    this.$("cann_problem_time").value=this.nowTime();
+    this.$("cann_problem_note").value="";
+    const art=this.latestCannulationAttempt("art"),ven=this.latestCannulationAttempt("ven");
+    if(art&&!ven)this.$("cann_problem_target").value="art";
+    else if(ven&&!art)this.$("cann_problem_target").value="ven";
+  }
+  confirmCannulationProblem(){
+    const target=this.$("cann_problem_target").value,phase=this.$("cann_problem_phase").value,kind=this.$("cann_problem_kind").value;
+    const t=this.$("cann_problem_time").value||this.nowTime(),atMs=this.timeToTodayMs(t)||Date.now(),note=this.$("cann_problem_note").value.trim();
+    const attempt=this.ensureCannulationAttempt(target,t,atMs);
+    attempt.status="abandoned";
+    attempt.problem={kind,phase,t,atMs,note};
+    const base=this.cannTargetLabel(target)+" 第"+attempt.attemptNo+"試行 "+this.cannPhaseLabel(phase)+" "+this.cannProblemLabel(kind)+(note?"（"+note+"）":"");
+    this.log("ECPR",base,t,{kind:"cannulation_problem",target,attemptNo:attempt.attemptNo,atMs,phase,problemKind:kind});
+    const retry=this.createCannulationAttempt(target,t,atMs,attempt.id);
+    this.log("ECPR",this.cannTargetLabel(target)+" 第"+retry.attemptNo+"試行 再穿刺開始",t,{kind:"repuncture_started",target,attemptNo:retry.attemptNo,atMs});
+    this.close("cannProblemModal");this.save();this.render();
+  }
+  localDateValue(ms=Date.now()){
+    const d=new Date(ms);
+    return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+  }
+  parseLocalDateTime(dateValue,timeValue){
+    const dm=/^(\d{4})-(\d{2})-(\d{2})$/.exec(dateValue||""),tm=/^(\d{2}):(\d{2})$/.exec(timeValue||"");
+    if(!dm||!tm)return null;
+    const d=new Date(Number(dm[1]),Number(dm[2])-1,Number(dm[3]),Number(tm[1]),Number(tm[2]),0,0);
+    if(d.getFullYear()!==Number(dm[1])||d.getMonth()!==Number(dm[2])-1||d.getDate()!==Number(dm[3]))return null;
+    return d.getTime();
+  }
+  prepareRetroModal(){
+    this.$("retro_date").value=this.localDateValue();
+    this.$("retro_time").value=this.nowTime();
+    this.$("retro_note").value="";
+    this.updateRetroFields();
+  }
+  updateRetroFields(){
+    const cfg=EcprCommanderV7.RETRO_EVENTS[this.$("retro_kind").value]||{},cann=!!cfg.cann;
+    this.$("retro_cann_fields").hidden=!cann;
+    this.$("retro_phase_block").hidden=!cfg.problem;
+    const target=this.$("retro_target");
+    target.disabled=!!cfg.target;
+    if(cfg.target)target.value=cfg.target;
+    this.$("retro_attempt_block").hidden=!cann||cfg.action==="cannulation_start"||cfg.action==="repuncture_started";
+    if(cann)this.populateRetroAttempts();
+  }
+  populateRetroAttempts(){
+    const cfg=EcprCommanderV7.RETRO_EVENTS[this.$("retro_kind").value]||{},target=cfg.target||this.$("retro_target").value;
+    const select=this.$("retro_attempt"),attempts=this.cannulationAttempts(target),status={active:"進行中",abandoned:"中断",completed:"完了"};
+    select.innerHTML=attempts.map(a=>`<option value="${this.escape(a.id)}">第${a.attemptNo}試行（${status[a.status]||a.status}）</option>`).join("")+"<option value=\"new\">新しい試行を作成</option>";
+    const latestActive=[...attempts].reverse().find(a=>a.status==="active"),latest=latestActive||attempts[attempts.length-1];
+    select.value=latest?latest.id:"new";
+  }
+  selectedRetroAttempt(target,t,atMs){
+    const id=this.$("retro_attempt").value;
+    const found=(this.state.ecpr.cannulationAttempts||[]).find(a=>a.id===id&&a.target===target);
+    return found||this.createCannulationAttempt(target,t,atMs,null);
+  }
+  setTimepoint(container,key,t,atMs){
+    container[key+"AtMs"]=container[key+"AtMs"]==null?atMs:Math.min(container[key+"AtMs"],atMs);
+    if(!container[key]||container[key+"AtMs"]===atMs)container[key]=t;
+  }
+  recordRetrospective(keepOpen){
+    const kind=this.$("retro_kind").value,cfg=EcprCommanderV7.RETRO_EVENTS[kind];
+    const dateValue=this.$("retro_date").value,t=this.$("retro_time").value,note=this.$("retro_note").value.trim();
+    const occurredAtMs=this.parseLocalDateTime(dateValue,t),recordedAtMs=Date.now();
+    if(!cfg||!occurredAtMs){this.toast("実施日と時刻を確認してください");return;}
+    if(kind==="custom"&&!note){this.toast("自由記載の内容を入力してください");return;}
+    const live=this.state.live,cpa=this.state.cpa,ecpr=this.state.ecpr;
+    ecpr.tasks=ecpr.tasks||{};ecpr.taskAtMs=ecpr.taskAtMs||{};
+    let text=cfg.text,attempt=null,target=cfg.target||this.$("retro_target").value;
+    if(kind==="cpr_start"){
+      if(!live.cprStartMs||occurredAtMs<live.cprStartMs)live.cprStartMs=occurredAtMs;
+      if(!live.flowCprStartMs||occurredAtMs<live.flowCprStartMs)live.flowCprStartMs=occurredAtMs;
+    }
+    if(cfg.rhythm)live.currentRhythm=cfg.rhythm;
+    if(cfg.action==="shock"){
+      live.shockCount=Number(live.shockCount||0)+1;cpa.shockCount=live.shockCount;text+=" "+live.shockCount+"回目";
+    }
+    if(cfg.action==="adrenaline"){
+      live.epiCount=Number(live.epiCount||0)+1;cpa.epiCount=live.epiCount;live.lastEpiMs=occurredAtMs;text+=" "+live.epiCount+"回目";
+    }
+    if(cfg.action==="amiodarone"){
+      live.amioCount=Number(live.amioCount||0)+1;text+=" "+live.amioCount+"回目";
+    }
+    if(cfg.action==="rosc"){
+      live.roscMs=occurredAtMs;live.roscTime=t;live.currentRhythm="ROSC";
+    }
+    if(cfg.action==="intubation"){
+      cpa.tubeTime=t;cpa.tube=t+(note?" "+note:"");
+      if(!cpa.prehospital.includes("気管挿管"))cpa.prehospital.push("気管挿管");
+    }
+    if(cfg.ecprField)this.setTimepoint(ecpr,cfg.ecprField,t,occurredAtMs);
+    if(cfg.task){
+      const old=ecpr.taskAtMs[cfg.task];
+      if(old==null||occurredAtMs<old){ecpr.taskAtMs[cfg.task]=occurredAtMs;ecpr.tasks[cfg.task]=t;}
+    }
+    if(cfg.cann){
+      if(cfg.action==="cannulation_start"){
+        attempt=this.latestCannulationAttempt(target);
+        if(!attempt||attempt.status!=="active")attempt=this.createCannulationAttempt(target,t,occurredAtMs,null);
+        this.setTimepoint(ecpr,"cann",t,occurredAtMs);
+      }else if(cfg.action==="repuncture_started"){
+        const prior=this.latestCannulationAttempt(target);
+        attempt=this.createCannulationAttempt(target,t,occurredAtMs,prior?prior.id:null);
+      }else{
+        attempt=this.selectedRetroAttempt(target,t,occurredAtMs);
+      }
+      if(cfg.action==="wire_inserted"){attempt.wireInsertedAt=t;attempt.wireInsertedAtMs=occurredAtMs;}
+      if(cfg.action==="wire_confirmed"){attempt.wireConfirmedAt=t;attempt.wireConfirmedAtMs=occurredAtMs;}
+      if(cfg.problem){
+        const phase=this.$("retro_phase").value;
+        attempt.status="abandoned";attempt.problem={kind:cfg.problemKind,phase,t,atMs:occurredAtMs,note,entryMode:"retrospective"};
+      }
+      if(cfg.action==="cannula_placed"){
+        attempt.status="completed";attempt.completedAt=t;attempt.completedAtMs=occurredAtMs;
+        ecpr.tasks[target+"_cann"]=t;ecpr.taskAtMs[target+"_cann"]=occurredAtMs;
+      }
+      text=this.cannTargetLabel(target)+" 第"+attempt.attemptNo+"試行 "+cfg.text;
+      if(cfg.problem)text=this.cannTargetLabel(target)+" 第"+attempt.attemptNo+"試行 "+this.cannPhaseLabel(this.$("retro_phase").value)+" "+this.cannProblemLabel(cfg.problemKind);
+    }
+    if(cfg.action==="custom")text=note;
+    else if(note&&!cfg.problem)text+=" / "+note;
+    else if(note&&cfg.problem)text+="（"+note+"）";
+    this.log(cfg.cat,text,t,{kind,target:cfg.cann?target:undefined,attemptNo:attempt?attempt.attemptNo:undefined,phase:cfg.problem?this.$("retro_phase").value:undefined,problemKind:cfg.problemKind,occurredAtMs,recordedAtMs,entryMode:"retrospective",occurredDate:dateValue,recordedDate:this.localDateValue(recordedAtMs)});
+    this.save();this.render();
+    if(keepOpen){this.$("retro_note").value="";this.populateRetroAttempts();this.toast("事後入力を保存しました");}
+    else{this.close("retroEntryModal");this.toast("事後入力を保存しました");}
+  }
+  completeCannulationAttempt(target,t,atMs){
+    const attempt=this.ensureCannulationAttempt(target,t,atMs);
+    attempt.status="completed";attempt.completedAt=t;attempt.completedAtMs=atMs;
+    return attempt;
+  }
   recordCannula(kind){
     const c=this.state.ecpr.cannula;
-    c.art=this.$("art_cann_size").value;c.ven=this.$("ven_cann_size").value;c.dpc=this.$("dpc_cann_size").value;
-    c.artActual=this.$("art_cann_actual").value;c.venActual=this.$("ven_cann_actual").value;c.dpcActual=this.$("dpc_cann_actual").value;
-    c.artCm=this.$("art_cann_cm").value;c.venCm=this.$("ven_cann_cm").value;c.dpcCm=this.$("dpc_cann_cm").value;
-    c.artSite=this.$("art_cann_site").value;c.venSite=this.$("ven_cann_site").value;
-    if(kind==="art"){const v=c.artActual||c.art;if(!v){this.toast("送血サイズを入力");return;}const tm=this.nowTime();this.state.ecpr.tasks.art_cann=tm;this.log("ECPR","送血カニューレ留置 "+(c.artSite?c.artSite+" ":"")+v+(c.artCm?" 固定"+c.artCm+"cm":""),tm);}
-    if(kind==="ven"){const v=c.venActual||c.ven;if(!v){this.toast("脱血サイズを入力");return;}const tm=this.nowTime();this.state.ecpr.tasks.ven_cann=tm;this.log("ECPR","脱血カニューレ留置 "+(c.venSite?c.venSite+" ":"")+v+(c.venCm?" 固定"+c.venCm+"cm":""),tm);}
-    if(kind==="dpc"){const v=c.dpcActual||c.dpc;if(!v){this.toast("順行性下肢サイズを入力");return;}this.state.ecpr.tasks.dpc=this.nowTime();this.log("ECPR","順行性下肢カニューレ留置 "+v+(c.dpcCm?" 固定"+c.dpcCm+"cm":""));}
+    if(kind==="art"){
+      const candidate=this.$("art_cann_size").value,actual=this.$("art_cann_actual").value,site=this.$("art_cann_site").value,cm=this.$("art_cann_cm").value,v=actual||candidate;
+      if(!v){this.toast("送血サイズを入力");return;}
+      c.art=candidate;c.artActual=actual;c.artCm=cm;c.artSite=site;
+      const tm=this.nowTime(),atMs=Date.now(),attempt=this.completeCannulationAttempt("art",tm,atMs);this.state.ecpr.tasks.art_cann=tm;
+      this.log("ECPR","送血側 第"+attempt.attemptNo+"試行 送血カニューレ留置 "+(site?site+" ":"")+v+(cm?" 固定"+cm+"cm":""),tm,{kind:"cannula_placed",target:"art",attemptNo:attempt.attemptNo,atMs});
+    }
+    if(kind==="ven"){
+      const candidate=this.$("ven_cann_size").value,actual=this.$("ven_cann_actual").value,site=this.$("ven_cann_site").value,cm=this.$("ven_cann_cm").value,v=actual||candidate;
+      if(!v){this.toast("脱血サイズを入力");return;}
+      c.ven=candidate;c.venActual=actual;c.venCm=cm;c.venSite=site;
+      const tm=this.nowTime(),atMs=Date.now(),attempt=this.completeCannulationAttempt("ven",tm,atMs);this.state.ecpr.tasks.ven_cann=tm;
+      this.log("ECPR","脱血側 第"+attempt.attemptNo+"試行 脱血カニューレ留置 "+(site?site+" ":"")+v+(cm?" 固定"+cm+"cm":""),tm,{kind:"cannula_placed",target:"ven",attemptNo:attempt.attemptNo,atMs});
+    }
+    if(kind==="dpc"){
+      const candidate=this.$("dpc_cann_size").value,actual=this.$("dpc_cann_actual").value,cm=this.$("dpc_cann_cm").value,v=actual||candidate;
+      if(!v){this.toast("順行性下肢サイズを入力");return;}
+      c.dpc=candidate;c.dpcActual=actual;c.dpcCm=cm;
+      const tm=this.nowTime(),atMs=Date.now();this.state.ecpr.tasks.dpc=tm;this.log("ECPR","順行性下肢カニューレ留置 "+v+(cm?" 固定"+cm+"cm":""),tm,{kind:"dpc_placed",atMs});
+    }
     this.close("cannulaModal");
     this.save();this.render();
   }
-  markEcpr(key,label){this.clickFx(this.$({ecmoCall:"btnEcmoCall",pcps:"btnPcps",cann:"btnCann",pump:"btnPump"}[key]));this.state.ecpr[key]=this.nowTime();this.log("ECPR",label);this.save();this.render();}
+  markEcpr(key,label){const tm=this.nowTime(),already=!!this.state.ecpr[key];this.clickFx(this.$({ecmoCall:"btnEcmoCall",pcps:"btnPcps",cann:"btnCann",pump:"btnPump"}[key]));if(!already)this.state.ecpr[key]=tm;this.log("ECPR",label+(already?"（再記録）":""),tm);this.save();this.render();}
   ecprTaskText(key,label){
     return {
       piv:"末梢静脈路確保",
@@ -1090,8 +1440,12 @@ class EcprCommanderV7{
   }
   currentEpisode(){return this.state.live.episode||1;}
   episodeLabel(ep){return (ep||1)>1?"第"+ep+"回 ":"";}
-  log(cat,text,timeOverride){
-    this.state.events.push({t:timeOverride||this.nowTime(),cat,text,ep:this.currentEpisode()});
+  log(cat,text,timeOverride,meta={}){
+    const seq=Number(this.state.eventSeq||0)+1;this.state.eventSeq=seq;
+    const t=timeOverride||this.nowTime(),recordedAtMs=Number.isFinite(meta.recordedAtMs)?meta.recordedAtMs:Date.now();
+    const atMs=Number.isFinite(meta.occurredAtMs)?meta.occurredAtMs:Number.isFinite(meta.atMs)?meta.atMs:(timeOverride?this.timeToTodayMs(t):recordedAtMs);
+    const entryMode=meta.entryMode||"realtime";
+    this.state.events.push({id:"event-"+seq+"-"+(atMs||recordedAtMs),seq,cat,text,ep:this.currentEpisode(),...meta,t,atMs,occurredAtMs:atMs,recordedAtMs,entryMode});
     this.renderLog();this.save();
   }
   diffMin(from,to){
@@ -1217,26 +1571,48 @@ class EcprCommanderV7{
     this.setTimerProgress("timerCycle",cycle,cycleLimit,100,"確認可");
     this.setTimerProgress("timerEpi",epi,epiLimit,210,"投与可");
   }
+  eventDisplayTime(e){
+    const date=e.occurredDate||(Number.isFinite(e.occurredAtMs)?this.localDateValue(e.occurredAtMs):"");
+    return date&&date!==this.localDateValue()?date.slice(5).replace("-","/")+" "+e.t:e.t;
+  }
+  eventRecordedLabel(e){
+    if(!Number.isFinite(e.recordedAtMs))return "";
+    const d=new Date(e.recordedAtMs),date=this.localDateValue(e.recordedAtMs),time=String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+    return (date===this.localDateValue()?"":date.slice(5).replace("-","/")+" ")+time;
+  }
   renderLog(){
     const el=this.$("log");
-    el.innerHTML=this.state.events.length?[...this.state.events].reverse().map(e=>`<div class="log-row"><span class="log-time">${e.t}</span><span class="log-cat">${e.cat}</span><span class="log-text">${this.episodeLabel(e.ep)}${this.escape(e.text)}</span></div>`).join(""):"ログ未記録";
+    el.innerHTML=this.state.events.length?[...this.state.events].reverse().map(e=>{
+      const badge=e.entryMode==="retrospective"?`<span class="entry-badge" title="入力 ${this.escape(this.eventRecordedLabel(e))}">事後</span>`:"";
+      return `<div class="log-row"><span class="log-time">${this.escape(this.eventDisplayTime(e))}</span><span class="log-cat">${this.escape(e.cat)}</span><span class="log-text">${this.episodeLabel(e.ep)}${this.escape(e.text)}${badge}</span></div>`;
+    }).join(""):"ログ未記録";
   }
   renderEcprFlow(){
     const e=this.state.ecpr,t=e.tasks||{};
-    const done={
-      call:!!e.ecmoCall,
-      decision:!!e.pcps,
-      prepare:!!(t.echo||t.prime||t.act||t.heparin),
-      cann:!!(e.cann||t.wire_xp||t.art_cann||t.ven_cann||t.connect),
-      support:!!(e.pump||t.dpc||t.aline||t.right_spo2||t.ct_route||t.cag_route||t.ct_done||t.cag_done)
+    const art=this.latestCannulationAttempt("art"),ven=this.latestCannulationAttempt("ven"),wireAttempts=[art,ven].filter(Boolean);
+    const retryPending=wireAttempts.some(a=>a.status==="active"&&a.retryOf&&!a.wireConfirmedAt);
+    const cannStarted=!!(e.cann||art||ven||t.art_cann||t.ven_cann||t.connect),cannDone=!!(t.art_cann&&t.ven_cann&&t.connect);
+    const status={
+      call:e.ecmoCall?"done":"on",
+      decision:e.pcps?"done":e.ecmoCall?"on":"",
+      prepare:(t.echo&&t.prime&&t.act)?"done":(t.echo||t.prime||t.act||t.heparin)?"on":"",
+      cann:retryPending?"warn":cannDone?"done":cannStarted?"on":"",
+      support:e.pump?"done":(t.dpc||t.aline||t.right_spo2||t.ct_route||t.cag_route||t.ct_done||t.cag_done)?"on":""
     };
     document.querySelectorAll("#ecprFlow .lane").forEach(x=>{
       const key=x.dataset.flow;
-      x.classList.toggle("done",!!done[key]);
-      x.classList.toggle("on",!done[key]&&(key==="call"||done.call));
+      x.classList.toggle("done",status[key]==="done");
+      x.classList.toggle("on",status[key]==="on");
+      x.classList.toggle("warn",status[key]==="warn");
     });
     document.querySelectorAll("[data-ecpr]").forEach(b=>b.classList.toggle("done",!!t[b.dataset.ecpr]));
     [["btnEcmoCall",e.ecmoCall],["btnPcps",e.pcps],["btnCann",e.cann],["btnPump",e.pump],["btnArtCann",t.art_cann],["btnVenCann",t.ven_cann],["btnDpcCann",t.dpc]].forEach(([id,on])=>{const b=this.$(id);if(b)b.classList.toggle("done",!!on);});
+    const wireDone=wireAttempts.length>0&&wireAttempts.every(a=>!!a.wireConfirmedAt);
+    this.$("btnWire").classList.toggle("done",wireDone);
+    this.$("btnWire").classList.toggle("problem",retryPending);
+    this.$("btnCannProblem").classList.toggle("problem",retryPending);
+    const wireText=a=>!a?"未記録":a.status==="active"&&a.retryOf&&!a.wireConfirmedAt?"第"+a.attemptNo+"試行 再確認待ち":a.wireConfirmedAt?"第"+a.attemptNo+"試行 確認済":a.wireInsertedAt?"第"+a.attemptNo+"試行 挿入済":"第"+a.attemptNo+"試行中";
+    this.$("wireStatus").textContent="送:"+wireText(art)+" / 脱:"+wireText(ven);
   }
   toggleKitCategory(id){
     this.state.kits.open[id]=!this.state.kits.open[id];
@@ -1355,10 +1731,12 @@ class EcprCommanderV7{
     return lines;
   }
   buildTimelineSection(){
-    const catOrder=["CPA","CPR","波形","除細動","薬剤","気道","処置","ECPR","転帰"];
     const lines=[this.reportSection(4,"タイムライン")];
-    const events=[...this.state.events].sort((a,b)=>a.t.localeCompare(b.t)||catOrder.indexOf(a.cat)-catOrder.indexOf(b.cat));
-    if(events.length)events.forEach(e=>lines.push(e.t+" "+this.episodeLabel(e.ep)+e.text));
+    const events=[...this.state.events].sort((a,b)=>{
+      if(Number.isFinite(a.atMs)&&Number.isFinite(b.atMs))return a.atMs-b.atMs||Number(a.seq||0)-Number(b.seq||0);
+      return Number(a.seq||0)-Number(b.seq||0);
+    });
+    if(events.length)events.forEach(e=>lines.push(this.eventDisplayTime(e)+" "+this.episodeLabel(e.ep)+e.text+(e.entryMode==="retrospective"?" 〔事後入力 "+this.eventRecordedLabel(e)+"〕":"")));
     else lines.push("記録なし");
     return lines;
   }
@@ -1368,20 +1746,31 @@ class EcprCommanderV7{
     if(t.leader||t.cannulator||t.ce||t.recorder)lines.push("チーム: "+[t.leader&&"リーダー "+t.leader,t.cannulator&&"穿刺 "+t.cannulator,t.ce&&"CE "+t.ce,t.recorder&&"記録 "+t.recorder].filter(Boolean).join(" / "));
     const q=e.cprQuality||{};
     if(q.etco2||q.depth||q.note)lines.push("CPR質: "+[q.etco2&&"EtCO2 "+q.etco2,q.depth&&"深さ "+q.depth,q.note].filter(Boolean).join(", "));
-    const hasCann=cn.artActual||cn.venActual||cn.art||cn.ven||cn.dpcActual;
+    const hasArt=!!(e.tasks&&e.tasks.art_cann&&(cn.artActual||cn.art)),hasVen=!!(e.tasks&&e.tasks.ven_cann&&(cn.venActual||cn.ven)),hasDpc=!!(e.tasks&&e.tasks.dpc&&(cn.dpcActual||cn.dpc));
+    const hasCann=hasArt||hasVen||hasDpc;
     if(hasCann){
       lines.push("カニューレ:");
-      if(cn.artActual||cn.art)lines.push("  送血: "+[cn.artSite,cn.artActual||cn.art,cn.artCm&&"固定"+cn.artCm+"cm",e.tasks&&e.tasks.art_cann&&"留置"+e.tasks.art_cann].filter(Boolean).join(" "));
-      if(cn.venActual||cn.ven)lines.push("  脱血: "+[cn.venSite,cn.venActual||cn.ven,cn.venCm&&"固定"+cn.venCm+"cm",e.tasks&&e.tasks.ven_cann&&"留置"+e.tasks.ven_cann].filter(Boolean).join(" "));
-      if(cn.dpcActual||cn.dpc)lines.push("  順行性下肢: "+(cn.dpcActual||cn.dpc)+(cn.dpcCm?" 固定"+cn.dpcCm+"cm":"")+(e.tasks&&e.tasks.dpc?" 留置"+e.tasks.dpc:""));
+      if(hasArt)lines.push("  送血: "+[cn.artSite,cn.artActual||cn.art,cn.artCm&&"固定"+cn.artCm+"cm","留置"+e.tasks.art_cann].filter(Boolean).join(" "));
+      if(hasVen)lines.push("  脱血: "+[cn.venSite,cn.venActual||cn.ven,cn.venCm&&"固定"+cn.venCm+"cm","留置"+e.tasks.ven_cann].filter(Boolean).join(" "));
+      if(hasDpc)lines.push("  順行性下肢: "+(cn.dpcActual||cn.dpc)+(cn.dpcCm?" 固定"+cn.dpcCm+"cm":"")+" 留置"+e.tasks.dpc);
       if(cn.weightRange)lines.push("  体重レンジ: "+cn.weightRange);
+    }
+    const attempts=e.cannulationAttempts||[];
+    if(attempts.length){
+      lines.push("カニュレーション試行:");
+      attempts.forEach(a=>{
+        const parts=[a.startedAt&&"穿刺"+a.startedAt,a.wireInsertedAt&&"ワイヤー挿入"+a.wireInsertedAt,a.wireConfirmedAt&&"X線確認"+a.wireConfirmedAt,a.completedAt&&"留置"+a.completedAt];
+        if(a.problem)parts.push(this.cannPhaseLabel(a.problem.phase)+" "+this.cannProblemLabel(a.problem.kind)+" "+a.problem.t+(a.problem.note?"（"+a.problem.note+"）":""));
+        const statusText=a.status==="completed"?"完了":a.status==="abandoned"?"中断":"進行中";
+        lines.push("  "+this.cannTargetLabel(a.target)+" 第"+a.attemptNo+"試行 ["+statusText+"]: "+parts.filter(Boolean).join(" / "));
+      });
     }
     const routeKeys=["ct_route","ct_done","cag_route","cag_done"];
     routeKeys.forEach(k=>{if(e.tasks&&e.tasks[k])lines.push((k.includes("route")?"【優先】":"【実施】")+this.ecprTaskText(k,k)+": "+e.tasks[k]+(e.routes&&e.routes[k]?" ("+e.routes[k]+")":""));});
     const skip=new Set(["art_cann","ven_cann","dpc","role","cpr_quality","handover",...routeKeys]);
     const tasks=Object.entries(e.tasks||{}).filter(([k])=>!skip.has(k)).map(([k,v])=>({t:v,text:this.ecprTaskText(k,k)})).sort((a,b)=>a.t.localeCompare(b.t));
     if(tasks.length){lines.push("処置記録:");tasks.forEach(x=>lines.push("  "+x.t+" "+x.text));}
-    if(!e.criteria.length&&!e.ecmoCall&&!tasks.length&&!hasCann&&!t.leader)lines.push("記録なし");
+    if(!e.criteria.length&&!e.ecmoCall&&!tasks.length&&!hasCann&&!attempts.length&&!t.leader)lines.push("記録なし");
     return lines;
   }
   buildReport(){
@@ -1438,7 +1827,7 @@ class EcprCommanderV7{
     this.$("amioDoseHint").textContent=(l.amioCount||0)===0?"次 300mg":"次 150mg";
     this.$("nextHint").textContent=l.roscMs?"ROSC後ケア、原因検索、ECPR/PCI/CT導線を確認します。":l.currentRhythm?("現在波形: "+l.currentRhythm+"。2分ごとの評価と薬剤タイミングを確認します。"):"CPA情報確定後、またはCPR開始/継続からライブ操作できます。";
   }
-  open(id){if(id==="airwayModal")this.prepareTubeModal();if(id==="cannulaModal")this.prepareCannulaModal();if(id==="roscModal")this.prepareRoscModal();if(id==="heparinModal")this.prepareHeparinModal();if(id==="roleModal")this.prepareRoleModal();if(id==="cprQualityModal")this.prepareCprQualityModal();if(id==="handoverModal")this.prepareHandoverModal();this.$(id).classList.add("show");}
+  open(id){if(id==="airwayModal")this.prepareTubeModal();if(id==="cannulaModal")this.prepareCannulaModal();if(id==="roscModal")this.prepareRoscModal();if(id==="heparinModal")this.prepareHeparinModal();if(id==="roleModal")this.prepareRoleModal();if(id==="cprQualityModal")this.prepareCprQualityModal();if(id==="handoverModal")this.prepareHandoverModal();if(id==="wireModal")this.prepareWireModal();if(id==="cannProblemModal")this.prepareCannProblemModal();if(id==="retroEntryModal")this.prepareRetroModal();this.$(id).classList.add("show");}
   close(id){this.$(id).classList.remove("show");}
   toast(msg){const old=document.getElementById("toast_msg");if(old)old.remove();const t=document.createElement("div");t.id="toast_msg";t.style.cssText="position:fixed;left:50%;bottom:86px;transform:translateX(-50%);background:#111827;color:#fff;padding:9px 16px;border-radius:999px;z-index:80;font-size:13px;font-weight:800";t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),1400);}
   escape(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
@@ -1455,9 +1844,9 @@ document.addEventListener("DOMContentLoaded",()=> {
         try {
           if ('serviceWorker' in navigator) {
             const keys = await caches.keys();
-            await Promise.all(keys.map(key => caches.delete(key)));
-            const registrations = await navigator.serviceWorker.getRegistrations();
-            await Promise.all(registrations.map(reg => reg.unregister()));
+            await Promise.all(keys.filter(key => key.startsWith('ecmo-cpa-')).map(key => caches.delete(key)));
+            const registration = await navigator.serviceWorker.getRegistration();
+            if (registration) await registration.update();
           }
           window.location.reload(true);
         } catch (e) {

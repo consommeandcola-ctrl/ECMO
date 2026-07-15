@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ecmo-cpa-v7-v7';
+const CACHE_NAME = 'ecmo-cpa-v7-v9';
 const urlsToCache = [
   './',
   './index.html',
@@ -24,7 +24,9 @@ self.addEventListener('fetch', (event) => {
     fetch(req)
       .then((res) => {
         const copy = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+        if (res.ok && req.url.startsWith(self.registration.scope)) {
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+        }
         return res;
       })
       .catch(() => caches.match(req))
@@ -37,7 +39,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (!cacheWhitelist.includes(cacheName)) {
+          if (cacheName.startsWith('ecmo-cpa-') && !cacheWhitelist.includes(cacheName)) {
             return caches.delete(cacheName);
           }
         })

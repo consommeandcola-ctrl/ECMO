@@ -4,3 +4,10 @@
 # Allow tracking of v7.0 directory and .gitignore
 !/v7.0/
 !/.gitignore
+!/package.json
+!/package-lock.json
+!/playwright.v7.config.js
+!/tests/
+/tests/*
+!/tests/serve.js
+!/tests/v7.spec.js

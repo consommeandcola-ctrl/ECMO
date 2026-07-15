@@ -1,6 +1,6 @@
 {
-  "name": "ECPR Commander v7.0",
-  "short_name": "ECPR Cmd v7.0",
+  "name": "ECPR Commander v7.2",
+  "short_name": "ECPR Cmd v7.2",
   "description": "CPA/ECPR Record Tool",
   "start_url": "./index.html",
   "display": "standalone",
